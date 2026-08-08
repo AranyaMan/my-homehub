@@ -24,6 +24,7 @@ def _show_chores_on_homepage() -> bool:
             return bool((cfg.get('feature_toggles') or {}).get('show_chores_on_homepage', False))
         return str(val).strip().lower() in ('1', 'true', 'yes', 'on')
     except Exception:
+        db.session.rollback()
         return False
 
 
@@ -33,6 +34,7 @@ def index():
     try:
         notice = Notice.query.order_by(Notice.updated_at.desc()).first()
     except Exception:
+        db.session.rollback()
         notice = None
 
     show_chores_on_homepage = _show_chores_on_homepage()
@@ -48,6 +50,7 @@ def index():
             Reminder.category,
         ).all()
     except Exception:
+        db.session.rollback()
         rows = []
     by_date = {}
     for rid, title, description, creator, rdate, rtime, rcat in rows:
@@ -68,10 +71,12 @@ def index():
     try:
         who_statuses = {s.name: s.status for s in HomeStatus.query.all() if s.name in family}
     except Exception:
+        db.session.rollback()
         who_statuses = {}
     try:
         member_statuses = {ms.name: ms.text for ms in MemberStatus.query.all() if ms.name in family and (ms.text or '').strip()}
     except Exception:
+        db.session.rollback()
         member_statuses = {}
     # Extract reminder categories
     reminder_categories = []
@@ -107,6 +112,7 @@ def index():
                 .all()
             )
         except Exception:
+            db.session.rollback()
             home_chores = []
     # Pass Python object; template will use |tojson safely
     return render_template(
