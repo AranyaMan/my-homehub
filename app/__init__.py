@@ -81,8 +81,8 @@ def create_app(test_config: dict | None = None):
         from . import models  # noqa: F401 ensures model metadata is registered
         db.create_all()
         # Perform tiny auto-migrations for SQLite to add missing columns if upgrading
-        # Skip this block in testing to avoid touching the real DB path
-        if not app.config.get('TESTING'):
+        # Skip this block when using PostgreSQL/Supabase (database_url) or in testing
+        if not app.config.get('TESTING') and not database_url:
             try:
                 import sqlite3
                 conn = sqlite3.connect(db_path)
