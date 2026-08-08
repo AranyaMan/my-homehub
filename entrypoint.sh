@@ -19,8 +19,8 @@ fi
 AUTH_USERNAME=$(printf '%s' "$AUTH_USERNAME" | tr -d '\r\n')
 AUTH_PASSWORD=$(printf '%s' "$AUTH_PASSWORD" | tr -d '\r\n')
 
-# Uses htpasswd with bcrypt (-B) for Nginx compatibility
-htpasswd -B -c /etc/nginx/.htpasswd "$AUTH_USERNAME" "$AUTH_PASSWORD"
+# Uses htpasswd in batch mode (-b), create (-c), bcrypt (-B) for Nginx compatibility
+htpasswd -b -c -B /etc/nginx/.htpasswd "$AUTH_USERNAME" "$AUTH_PASSWORD"
 chmod 644 /etc/nginx/.htpasswd
 echo "✔ Generated /etc/nginx/.htpasswd (chmod 644) for user: $AUTH_USERNAME"
 
