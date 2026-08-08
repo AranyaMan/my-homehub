@@ -29,8 +29,14 @@ def load_config():
         rem.setdefault('calendar_start_day', 'sunday')  # default Sunday to align with expense tracker
     # Admin name default
     config.setdefault('admin_name', 'Administrator')
-    # Family members default list
-    config.setdefault('family_members', [])
+    # Family members default list (supports override via FAMILY_MEMBERS env var)
+    family_env = os.environ.get('FAMILY_MEMBERS')
+    if family_env:
+        members = [m.strip() for m in family_env.split(',') if m.strip()]
+        if members:
+            config['family_members'] = members
+    else:
+        config.setdefault('family_members', [])
     # Theme defaults
     theme = config.setdefault('theme', {})
     theme.setdefault('primary_color', '#1d4ed8')
