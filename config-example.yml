@@ -17,11 +17,8 @@ feature_toggles:
   expense_tracker: true
 
 family_members:
-  - Mom
-  - Dad
-  - Dipanshu
-  - Vivek
-  - India
+  - Dustu
+  - Aranya
 
 reminders:
   # time_format controls how reminder times are displayed in the UI.
