@@ -1,0 +1,73 @@
+# =============================================================================
+# Dockerfile.render — HomeHub + Nginx Basic Auth (single container for Render)
+# =============================================================================
+# This file is separate from the original Dockerfile so local/self-hosted
+# deployments remain unaffected.
+# =============================================================================
+
+# ── Stage 1: Builder (identical to original) ────────────────────────────────
+FROM python:3.12-alpine AS builder
+
+WORKDIR /app
+
+# Build dependencies
+RUN apk add --no-cache \
+    build-base \
+    zlib-dev \
+    jpeg-dev \
+    nodejs \
+    npm
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy package files and build Tailwind CSS
+COPY package.json tailwind.config.js ./
+COPY static/input.css ./static/
+COPY templates ./templates
+RUN npm install && npm run build:css
+
+
+# ── Stage 2: Runtime (Gunicorn + Nginx + Supervisord) ───────────────────────
+FROM python:3.12-alpine
+
+WORKDIR /app
+
+# Build argument for app version and environment variable for runtime
+ARG APP_VERSION=dev
+ENV SW_CACHE_VERSION=$APP_VERSION
+
+# Runtime packages + Nginx + Supervisord + htpasswd
+RUN apk add --no-cache \
+    ffmpeg \
+    ghostscript \
+    libjpeg-turbo \
+    zlib \
+    libstdc++ \
+    nginx \
+    supervisor \
+    apache2-utils
+
+# Copy installed Python packages from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+# Copy application code
+COPY . /app
+
+# Copy built Tailwind CSS from builder
+COPY --from=builder /app/static/output.css /app/static/output.css
+
+# Copy Nginx config
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
+
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
+
+# Create directories that nginx/supervisor expect
+RUN mkdir -p /run/nginx /var/log/supervisor
+
+# Only Nginx's port is exposed — Gunicorn stays on localhost:5000
+EXPOSE 10000
+
+ENTRYPOINT ["/app/entrypoint.sh"]

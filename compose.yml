@@ -1,6 +1,7 @@
 services:
   homehub:
     container_name: homehub
+    profiles: ["app"]
     image: ghcr.io/surajverma/homehub:latest
     # build: .
     ports:
@@ -14,3 +15,20 @@ services:
     environment:
       - FLASK_ENV=production
       - SECRET_KEY=${SECRET_KEY:-}
+
+  # ── Render deployment test ──────────────────────────────────────
+  # Usage: docker compose --profile render up --build
+  # Then open http://localhost:10000 (will prompt for credentials)
+  homehub-render:
+    container_name: homehub-render
+    profiles: ["render"]
+    build:
+      context: .
+      dockerfile: Dockerfile.render
+    ports:
+      - "10000:10000"
+    environment:
+      - AUTH_USERNAME=${AUTH_USERNAME:-admin}
+      - AUTH_PASSWORD=${AUTH_PASSWORD:-changeme}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - FLASK_ENV=production
