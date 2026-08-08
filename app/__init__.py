@@ -46,6 +46,12 @@ def create_app(test_config: dict | None = None):
             except Exception:
                 pass
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+        # Disable prepared statements for Supabase PgBouncer / Transaction Pooler (port 6543) compatibility
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            'connect_args': {
+                'prepare_threshold': None
+            }
+        }
     else:
         db_path = os.path.join(base_dir, 'data', 'app.db')
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
