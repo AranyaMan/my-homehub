@@ -15,6 +15,7 @@ RUN apk add --no-cache \
     build-base \
     zlib-dev \
     jpeg-dev \
+    postgresql-dev \
     nodejs \
     npm
 
@@ -44,6 +45,7 @@ RUN apk add --no-cache \
     libjpeg-turbo \
     zlib \
     libstdc++ \
+    libpq \
     nginx \
     supervisor \
     apache2-utils

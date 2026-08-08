@@ -28,9 +28,15 @@ def create_app(test_config: dict | None = None):
     os.makedirs(media_dir, exist_ok=True)
     os.makedirs(pdfs_dir, exist_ok=True)
 
-    # SQLite DB file at an absolute path to avoid driver path issues
-    db_path = os.path.join(base_dir, 'data', 'app.db')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+    # DB connection (PostgreSQL / Supabase if DATABASE_URL is set, otherwise SQLite fallback)
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        if database_url.startswith("postgres://"):
+            database_url = database_url.replace("postgres://", "postgresql://", 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+    else:
+        db_path = os.path.join(base_dir, 'data', 'app.db')
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     # Generate a strong SECRET_KEY if not provided via env
     secret = os.environ.get('SECRET_KEY')
