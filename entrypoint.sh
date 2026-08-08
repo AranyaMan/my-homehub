@@ -15,9 +15,14 @@ if [ ! -f /app/config.yml ]; then
 fi
 
 # ── Generate .htpasswd at runtime ───────────────────────────────────
-# Uses htpasswd from apache2-utils (installed in Dockerfile.render)
-htpasswd -cb /etc/nginx/.htpasswd "$AUTH_USERNAME" "$AUTH_PASSWORD"
-echo "✔ Generated /etc/nginx/.htpasswd for user: $AUTH_USERNAME"
+# Clean any trailing carriage returns or newlines from environment variables
+AUTH_USERNAME=$(printf '%s' "$AUTH_USERNAME" | tr -d '\r\n')
+AUTH_PASSWORD=$(printf '%s' "$AUTH_PASSWORD" | tr -d '\r\n')
+
+# Uses htpasswd with bcrypt (-B) for Nginx compatibility
+htpasswd -B -c /etc/nginx/.htpasswd "$AUTH_USERNAME" "$AUTH_PASSWORD"
+chmod 644 /etc/nginx/.htpasswd
+echo "✔ Generated /etc/nginx/.htpasswd (chmod 644) for user: $AUTH_USERNAME"
 
 # ── Ensure data directories exist ──────────────────────────────────
 mkdir -p /app/uploads /app/media /app/pdfs /app/data
