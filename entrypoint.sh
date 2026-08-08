@@ -15,23 +15,19 @@ if [ ! -f /app/config.yml ]; then
 fi
 
 # ── Generate .htpasswd at runtime ───────────────────────────────────
-# Clean existing htpasswd file
 rm -f /etc/nginx/.htpasswd
+touch /etc/nginx/.htpasswd
 
 # 1. Add primary user (AUTH_USERNAME / AUTH_PASSWORD)
 if [ -n "$AUTH_USERNAME" ] && [ -n "$AUTH_PASSWORD" ]; then
-    AUTH_USERNAME=$(printf '%s' "$AUTH_USERNAME" | tr -d '\r\n')
-    AUTH_PASSWORD=$(printf '%s' "$AUTH_PASSWORD" | tr -d '\r\n')
-    htpasswd -b -c -B /etc/nginx/.htpasswd "$AUTH_USERNAME" "$AUTH_PASSWORD"
-    echo "✔ Added primary user: $AUTH_USERNAME"
+    u=$(printf '%s' "$AUTH_USERNAME" | tr -d '\r\n ')
+    p=$(printf '%s' "$AUTH_PASSWORD" | tr -d '\r\n ')
+    htpasswd -b -c -B /etc/nginx/.htpasswd "$u" "$p"
+    echo "✔ Added user: $u"
 fi
 
-# 2. Add additional family users if AUTH_USERS is set
-# Example format in Render env var: AUTH_USERS="mom:pass1,dad:pass2,alex:pass3"
+# 2. Add users from AUTH_USERS="user1:pass1,user2:pass2"
 if [ -n "$AUTH_USERS" ]; then
-    # Create file if it didn't exist yet
-    [ ! -f /etc/nginx/.htpasswd ] && touch /etc/nginx/.htpasswd
-    
     OLD_IFS="$IFS"
     IFS=','
     for pair in $AUTH_USERS; do
@@ -39,11 +35,29 @@ if [ -n "$AUTH_USERS" ]; then
         p=$(echo "$pair" | cut -d':' -f2 | tr -d '\r\n ')
         if [ -n "$u" ] && [ -n "$p" ]; then
             htpasswd -b -B /etc/nginx/.htpasswd "$u" "$p"
-            echo "✔ Added family member: $u"
+            echo "✔ Added user: $u"
         fi
     done
     IFS="$OLD_IFS"
 fi
+
+# 3. Automatically treat any custom KEY=VALUE env var as USERNAME=PASSWORD
+# (e.g. KEY: Dustu, VALUE: Bidisha@123)
+env | while IFS='=' read -r key val; do
+    key=$(echo "$key" | tr -d '\r\n ')
+    val=$(echo "$val" | tr -d '\r\n ')
+    case "$key" in
+        AUTH_USERNAME|AUTH_PASSWORD|AUTH_USERS|SECRET_KEY|FLASK_ENV|PORT|RENDER*|PATH|HOME|HOSTNAME|PWD|SHLVL|SW_CACHE_VERSION|_|APP_VERSION)
+            # Skip built-in system variables
+            ;;
+        *)
+            if [ -n "$key" ] && [ -n "$val" ]; then
+                htpasswd -b -B /etc/nginx/.htpasswd "$key" "$val"
+                echo "✔ Auto-detected custom login for user: $key"
+            fi
+            ;;
+    esac
+done
 
 chmod 644 /etc/nginx/.htpasswd
 
