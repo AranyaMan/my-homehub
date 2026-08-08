@@ -46,11 +46,13 @@ def create_app(test_config: dict | None = None):
             except Exception:
                 pass
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
-        # Disable prepared statements for Supabase PgBouncer / Transaction Pooler (port 6543) compatibility
+        # Disable prepared statements & enable pre-ping for Supabase PgBouncer pooler compatibility
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
             'connect_args': {
                 'prepare_threshold': None
-            }
+            },
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
         }
     else:
         db_path = os.path.join(base_dir, 'data', 'app.db')
