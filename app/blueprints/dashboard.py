@@ -30,7 +30,11 @@ def _show_chores_on_homepage() -> bool:
 @main_bp.route('/')
 def index():
     config = current_app.config['HOMEHUB_CONFIG']
-    notice = Notice.query.order_by(Notice.updated_at.desc()).first()
+    try:
+        notice = Notice.query.order_by(Notice.updated_at.desc()).first()
+    except Exception:
+        notice = None
+
     show_chores_on_homepage = _show_chores_on_homepage()
     # Calendar: gather reminders grouped by date
     try:
@@ -61,8 +65,14 @@ def index():
         })
     # Who is Home summary
     family = list(dict.fromkeys(config.get('family_members', [])))
-    who_statuses = {s.name: s.status for s in HomeStatus.query.all() if s.name in family}
-    member_statuses = {ms.name: ms.text for ms in MemberStatus.query.all() if ms.name in family and (ms.text or '').strip()}
+    try:
+        who_statuses = {s.name: s.status for s in HomeStatus.query.all() if s.name in family}
+    except Exception:
+        who_statuses = {}
+    try:
+        member_statuses = {ms.name: ms.text for ms in MemberStatus.query.all() if ms.name in family and (ms.text or '').strip()}
+    except Exception:
+        member_statuses = {}
     # Extract reminder categories
     reminder_categories = []
     try:
