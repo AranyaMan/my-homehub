@@ -33,6 +33,18 @@ def create_app(test_config: dict | None = None):
     if database_url:
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
+        # Automatically handle unencoded '@' characters in database passwords
+        if database_url.count('@') > 1:
+            try:
+                import urllib.parse
+                scheme, rest = database_url.split('://', 1)
+                userinfo, hostpath = rest.rsplit('@', 1)
+                if ':' in userinfo:
+                    username, password = userinfo.split(':', 1)
+                    password_encoded = urllib.parse.quote(password, safe='')
+                    database_url = f"{scheme}://{username}:{password_encoded}@{hostpath}"
+            except Exception:
+                pass
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     else:
         db_path = os.path.join(base_dir, 'data', 'app.db')
