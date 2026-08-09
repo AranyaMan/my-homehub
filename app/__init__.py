@@ -80,143 +80,77 @@ def create_app(test_config: dict | None = None):
     with app.app_context():
         from . import models  # noqa: F401 ensures model metadata is registered
         db.create_all()
-        # Perform tiny auto-migrations for SQLite to add missing columns if upgrading
-        # Skip this block when using PostgreSQL/Supabase (database_url) or in testing
-        if not app.config.get('TESTING') and not database_url:
-            try:
-                import sqlite3
-                conn = sqlite3.connect(db_path)
-                cur = conn.cursor()
-                # Import models to get actual table names
-                from .models import RecurringExpense as _RecurringExpense, QRCode as _QRCode, Reminder as _Reminder  # noqa: F401
-                # Helper to check column existence
-                def has_column(table, column):
-                    cur.execute(f"PRAGMA table_info({table})")
-                    return any(row[1] == column for row in cur.fetchall())
-                # Add 'done' to chore
-                if not has_column('chore', 'done'):
-                    cur.execute("ALTER TABLE chore ADD COLUMN done INTEGER DEFAULT 0")
-                if not has_column('chore', 'due_date'):
-                    cur.execute("ALTER TABLE chore ADD COLUMN due_date DATE")
-                if not has_column('chore', 'recurring_id'):
-                    cur.execute("ALTER TABLE chore ADD COLUMN recurring_id INTEGER")
-                # Add 'tags' to shoppingitem and chore for multi-tag feature
-                if not has_column('shopping_item', 'tags'):
-                    cur.execute("ALTER TABLE shopping_item ADD COLUMN tags TEXT DEFAULT '[]'")
-                # Add quantity and unit to shopping_item
-                if not has_column('shopping_item', 'quantity'):
-                    cur.execute("ALTER TABLE shopping_item ADD COLUMN quantity REAL DEFAULT 1.0")
-                if not has_column('shopping_item', 'unit'):
-                    cur.execute("ALTER TABLE shopping_item ADD COLUMN unit TEXT DEFAULT 'pcs'")
-                if not has_column('chore', 'tags'):
-                    cur.execute("ALTER TABLE chore ADD COLUMN tags TEXT DEFAULT '[]'")
-                # Add 'status' to media
-                if not has_column('media', 'status'):
-                    cur.execute("ALTER TABLE media ADD COLUMN status TEXT DEFAULT 'done'")
-                # Add 'progress' to media
-                if not has_column('media', 'progress'):
-                    cur.execute("ALTER TABLE media ADD COLUMN progress TEXT")
-                # Reminder new columns (category, color, updated_at)
-                if not has_column('reminder', 'category'):
-                    cur.execute("ALTER TABLE reminder ADD COLUMN category TEXT")
-                if not has_column('reminder', 'color'):
-                    cur.execute("ALTER TABLE reminder ADD COLUMN color TEXT")
-                if not has_column('reminder', 'updated_at'):
-                    cur.execute("ALTER TABLE reminder ADD COLUMN updated_at TIMESTAMP")
-                if not has_column('reminder', 'time'):
-                    cur.execute("ALTER TABLE reminder ADD COLUMN time TEXT")
-                # Ensure memberstatus table exists
-                cur.execute("CREATE TABLE IF NOT EXISTS member_status (id INTEGER PRIMARY KEY, name TEXT, text TEXT, updated_at TIMESTAMP)")
-                # Ensure new tables for groceries and expenses exist
-                cur.execute("CREATE TABLE IF NOT EXISTS grocery_history (id INTEGER PRIMARY KEY, item TEXT, creator TEXT, timestamp TIMESTAMP)")
-                cur.execute("CREATE TABLE IF NOT EXISTS recurring_expense (id INTEGER PRIMARY KEY, title TEXT, unit_price REAL, default_quantity REAL, frequency TEXT, start_date DATE, end_date DATE, last_generated_date DATE, creator TEXT, timestamp TIMESTAMP)")
-                cur.execute("CREATE TABLE IF NOT EXISTS expense_entry (id INTEGER PRIMARY KEY, date DATE, title TEXT, category TEXT, unit_price REAL, quantity REAL, amount REAL, payer TEXT, recurring_id INTEGER, timestamp TIMESTAMP)")
-                # Add monthly_mode to recurring_expense if missing
-                def ensure_column(table, col, type_spec, default=None):
-                    cur.execute(f"PRAGMA table_info({table})")
-                    cols = [row[1] for row in cur.fetchall()]
-                    if col not in cols:
-                        cur.execute(f"ALTER TABLE {table} ADD COLUMN {col} {type_spec}")
-                        if default is not None:
-                            cur.execute(f"UPDATE {table} SET {col}=? WHERE {col} IS NULL", (default,))
-                ensure_column(_RecurringExpense.__tablename__, 'monthly_mode', 'TEXT', 'day_of_month')
-                ensure_column(_RecurringExpense.__tablename__, 'category', 'TEXT', None)
-                ensure_column(_RecurringExpense.__tablename__, 'effective_from', 'DATE', None)
-                # Basic settings table (key/value) for currency and categories
-                cur.execute("CREATE TABLE IF NOT EXISTS app_setting (key TEXT PRIMARY KEY, value TEXT)")
-                # New columns for QRCode and Reminder
-                ensure_column(_QRCode.__tablename__, 'original_input', 'TEXT', None)
-                ensure_column(_Reminder.__tablename__, 'recurring_id', 'INTEGER', None)
-                # Add 'tags' to recipe for multi-tag feature
-                if not has_column('recipe', 'tags'):
-                    cur.execute("ALTER TABLE recipe ADD COLUMN tags TEXT DEFAULT '[]'")
-                # Ensure inventory_item table exists
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS inventory_item (
-                    id INTEGER PRIMARY KEY,
-                    name TEXT NOT NULL,
-                    quantity REAL DEFAULT 0.0,
-                    unit TEXT DEFAULT 'pcs',
-                    category TEXT,
-                    location TEXT,
-                    min_quantity REAL DEFAULT 0.0,
-                    creator TEXT,
-                    timestamp TIMESTAMP,
-                    updated_at TIMESTAMP,
-                    tags TEXT DEFAULT '[]'
-                )
-                """)
-                # Ensure recurring_reminder table exists (if not created by SQLAlchemy create_all)
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS recurring_reminder (
-                    id INTEGER PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    creator TEXT,
-                    frequency TEXT,
-                    monthly_mode TEXT,
-                    interval INTEGER,
-                    unit TEXT,
-                    time TEXT,
-                    category TEXT,
-                    color TEXT,
-                    start_date DATE,
-                    end_date DATE,
-                    last_generated_date DATE,
-                    effective_from DATE,
-                    timestamp TIMESTAMP
-                )
-                """)
-                # Ensure recurring_chore table exists
-                cur.execute("""
-                CREATE TABLE IF NOT EXISTS recurring_chore (
-                    id INTEGER PRIMARY KEY,
-                    description TEXT NOT NULL,
-                    creator TEXT,
-                    tags TEXT,
-                    interval INTEGER,
-                    unit TEXT,
-                    start_date DATE,
-                    end_date DATE,
-                    last_generated_date DATE,
-                    timestamp TIMESTAMP
-                )
-                """)
-                # Add new interval/unit columns if missing and backfill defaults
-                ensure_column('recurring_reminder', 'interval', 'INTEGER', 1)
-                ensure_column('recurring_reminder', 'unit', 'TEXT', 'day')
-                # Backfill unit from legacy frequency when null
+        # Perform auto-migrations for both SQLite and PostgreSQL
+        # This runs for all databases to ensure schema is up to date
+        try:
+            from sqlalchemy import inspect, text
+            inspector = inspect(db.engine)
+            
+            def has_column(inspector, table, column):
                 try:
-                    cur.execute("UPDATE recurring_reminder SET unit='day' WHERE (unit IS NULL OR unit='') AND frequency='daily'")
-                    cur.execute("UPDATE recurring_reminder SET unit='week' WHERE (unit IS NULL OR unit='') AND frequency='weekly'")
-                    cur.execute("UPDATE recurring_reminder SET unit='month' WHERE (unit IS NULL OR unit='') AND frequency='monthly'")
+                    cols = inspector.get_columns(table)
+                    return any(c['name'] == column for c in cols)
                 except Exception:
-                    pass
-                conn.commit()
-                conn.close()
-            except Exception:
-                # Best-effort; ignore if anything goes wrong
-                pass
+                    return False
+            
+            def add_column_if_missing(table, column, ddl, default=None):
+                if not has_column(inspector, table, column):
+                    with db.engine.begin() as conn:
+                        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {ddl}"))
+                        if default is not None:
+                            conn.execute(text(f"UPDATE {table} SET {column} = :val WHERE {column} IS NULL"), {"val": default})
+            
+            # Shopping item quantity and unit
+            add_column_if_missing('shopping_item', 'quantity', 'REAL DEFAULT 1.0', 1.0)
+            add_column_if_missing('shopping_item', 'unit', "VARCHAR(32) DEFAULT 'pcs'", 'pcs')
+            
+            # Inventory item table (for new installs)
+            if not has_column(inspector, 'inventory_item', 'id'):
+                with db.engine.begin() as conn:
+                    conn.execute(text("""
+                        CREATE TABLE IF NOT EXISTS inventory_item (
+                            id SERIAL PRIMARY KEY,
+                            name VARCHAR(256) NOT NULL,
+                            quantity REAL DEFAULT 0.0,
+                            unit VARCHAR(32) DEFAULT 'pcs',
+                            category VARCHAR(64),
+                            location VARCHAR(128),
+                            min_quantity REAL DEFAULT 0.0,
+                            creator VARCHAR(64),
+                            timestamp TIMESTAMP,
+                            updated_at TIMESTAMP,
+                            tags TEXT DEFAULT '[]'
+                        )
+                    """))
+            
+            # Other existing migrations (tags, etc.)
+            add_column_if_missing('shopping_item', 'tags', "TEXT DEFAULT '[]'", '[]')
+            add_column_if_missing('chore', 'tags', "TEXT DEFAULT '[]'", '[]')
+            add_column_if_missing('recipe', 'tags', "TEXT DEFAULT '[]'", '[]')
+            add_column_if_missing('chore', 'done', 'BOOLEAN DEFAULT FALSE', False)
+            add_column_if_missing('chore', 'due_date', 'DATE', None)
+            add_column_if_missing('chore', 'recurring_id', 'INTEGER', None)
+            add_column_if_missing('media', 'status', "VARCHAR(32) DEFAULT 'done'", 'done')
+            add_column_if_missing('media', 'progress', 'TEXT', None)
+            add_column_if_missing('reminder', 'category', 'VARCHAR(64)', None)
+            add_column_if_missing('reminder', 'color', 'VARCHAR(16)', None)
+            add_column_if_missing('reminder', 'updated_at', 'TIMESTAMP', None)
+            add_column_if_missing('reminder', 'time', 'VARCHAR(5)', None)
+            add_column_if_missing('reminder', 'recurring_id', 'INTEGER', None)
+            add_column_if_missing('qr_code', 'original_input', 'TEXT', None)
+            add_column_if_missing('recurring_expense', 'monthly_mode', "VARCHAR(16) DEFAULT 'day_of_month'", 'day_of_month')
+            add_column_if_missing('recurring_expense', 'category', 'VARCHAR(64)', None)
+            add_column_if_missing('recurring_expense', 'effective_from', 'DATE', None)
+            
+            # Ensure tables exist
+            with db.engine.begin() as conn:
+                conn.execute(text("CREATE TABLE IF NOT EXISTS member_status (id SERIAL PRIMARY KEY, name VARCHAR(64), text TEXT, updated_at TIMESTAMP)"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS grocery_history (id SERIAL PRIMARY KEY, item VARCHAR(256), creator VARCHAR(64), timestamp TIMESTAMP)"))
+                conn.execute(text("CREATE TABLE IF NOT EXISTS app_setting (key VARCHAR(64) PRIMARY KEY, value TEXT)"))
+                
+        except Exception as e:
+            # Log but don't crash on migration errors
+            app.logger.warning(f"Auto-migration skipped or failed: {e}")
 
     from .blueprints import main_bp
     # Register modular route modules to attach endpoints to main_bp
