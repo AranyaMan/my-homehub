@@ -1,0 +1,54 @@
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Name <span class="text-red-500">*</span></label>
+    <input type="text" name="name" id="formName" required value="{{ form_name or '' }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., Milk, Toilet Paper">
+</div>
+
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity <span class="text-red-500">*</span></label>
+    <input type="number" name="quantity" id="formQuantity" step="0.01" min="0" required value="{{ form_quantity or 0 }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+</div>
+
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
+    <select name="unit" id="formUnit" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+        <option value="pcs" {% if (form_unit or 'pcs') == 'pcs' %}selected{% endif %}>Pieces (pcs)</option>
+        <option value="kg" {% if form_unit == 'kg' %}selected{% endif %}>Kilograms (kg)</option>
+        <option value="g" {% if form_unit == 'g' %}selected{% endif %}>Grams (g)</option>
+        <option value="l" {% if form_unit == 'l' %}selected{% endif %}>Liters (l)</option>
+        <option value="ml" {% if form_unit == 'ml' %}selected{% endif %}>Milliliters (ml)</option>
+        <option value="m" {% if form_unit == 'm' %}selected{% endif %}>Meters (m)</option>
+        <option value="pack" {% if form_unit == 'pack' %}selected{% endif %}>Pack</option>
+        <option value="box" {% if form_unit == 'box' %}selected{% endif %}>Box</option>
+        <option value="bottle" {% if form_unit == 'bottle' %}selected{% endif %}>Bottle</option>
+        <option value="can" {% if form_unit == 'can' %}selected{% endif %}>Can</option>
+    </select>
+</div>
+
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+    <input type="text" name="category" id="formCategory" value="{{ form_category or '' }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., Groceries, Cleaning, Tools" list="categoryList">
+    <datalist id="categoryList">
+        {% for cat in categories %}
+        <option value="{{ cat }}">{% endfor %}
+    </datalist>
+</div>
+
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+    <input type="text" name="location" id="formLocation" value="{{ form_location or '' }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., Pantry, Fridge, Garage" list="locationList">
+    <datalist id="locationList">
+        {% for loc in locations %}
+        <option value="{{ loc }}">{% endfor %}
+    </datalist>
+</div>
+
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min Quantity (Alert)</label>
+    <input type="number" name="min_quantity" id="formMinQuantity" step="0.01" min="0" value="{{ form_min_quantity or 0 }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Alert when quantity drops below this">
+</div>
+
+<div class="md:col-span-2 lg:col-span-3">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (comma-separated)</label>
+    <input type="text" name="tags" id="formTags" value="{{ form_tags or '[]' }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder='e.g., ["weekly", "essentials", "bulk"]'>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter as JSON array or comma-separated values</p>
+</div>
