@@ -145,6 +145,22 @@ def create_app(test_config: dict | None = None):
                 # Add 'tags' to recipe for multi-tag feature
                 if not has_column('recipe', 'tags'):
                     cur.execute("ALTER TABLE recipe ADD COLUMN tags TEXT DEFAULT '[]'")
+                # Ensure inventory_item table exists
+                cur.execute("""
+                CREATE TABLE IF NOT EXISTS inventory_item (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    quantity REAL DEFAULT 0.0,
+                    unit TEXT DEFAULT 'pcs',
+                    category TEXT,
+                    location TEXT,
+                    min_quantity REAL DEFAULT 0.0,
+                    creator TEXT,
+                    timestamp TIMESTAMP,
+                    updated_at TIMESTAMP,
+                    tags TEXT DEFAULT '[]'
+                )
+                """)
                 # Ensure recurring_reminder table exists (if not created by SQLAlchemy create_all)
                 cur.execute("""
                 CREATE TABLE IF NOT EXISTS recurring_reminder (
@@ -212,6 +228,7 @@ def create_app(test_config: dict | None = None):
     from .blueprints import chores  # noqa: F401
     from .blueprints import qr  # noqa: F401
     from .blueprints import weather  # noqa: F401
+    from .blueprints import inventory  # noqa: F401
     app.register_blueprint(main_bp)
 
     @app.context_processor

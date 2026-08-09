@@ -125,6 +125,7 @@
                 {% if config.feature_toggles.get('pdf_compressor') %}<a href="/pdfs" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="PDF Compressor"><i class="fa-solid fa-file-pdf w-5 text-center"></i><span class="nav-label">PDF Compressor</span></a>{% endif %}
                 {% if config.feature_toggles.get('qr_generator') %}<a href="/qr" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="QR Generator"><i class="fa-solid fa-qrcode w-5 text-center"></i><span class="nav-label">QR Generator</span></a>{% endif %}
                 {% if config.feature_toggles.get('expense_tracker', true) %}<a href="/expenses" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="Expense Tracker"><i class="fa-solid fa-wallet w-5 text-center"></i><span class="nav-label">Expense Tracker</span></a>{% endif %}
+                {% if config.feature_toggles.get('inventory_tracker') %}<a href="/inventory" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="Inventory Tracker"><i class="fa-solid fa-boxes-stacked w-5 text-center"></i><span class="nav-label">Inventory Tracker</span></a>{% endif %}
             </nav>
             <script>
             // Highlight active sidebar link

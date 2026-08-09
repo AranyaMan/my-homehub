@@ -180,3 +180,17 @@ class ExpenseEntry(db.Model):
     payer = db.Column(db.String(64))
     recurring_id = db.Column(db.Integer, db.ForeignKey('recurring_expense.id'))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+class InventoryItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(256), nullable=False)
+    quantity = db.Column(db.Float, default=0.0)
+    unit = db.Column(db.String(32), default='pcs')  # pcs, kg, l, etc.
+    category = db.Column(db.String(64))
+    location = db.Column(db.String(128))  # pantry, fridge, freezer, garage, etc.
+    min_quantity = db.Column(db.Float, default=0.0)  # alert threshold
+    creator = db.Column(db.String(64))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # JSON-encoded list of tags for filtering/grouping
+    tags = db.Column(db.Text, default='[]')

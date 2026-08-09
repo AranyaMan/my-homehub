@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Inventory Tracker</h1>
+            <p class="text-gray-600 dark:text-gray-400">Track your household inventory, quantities, and low-stock alerts</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
+        <form method="GET" class="flex flex-wrap gap-4 items-end">
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                <select name="category" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Categories</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat }}" {% if cat == filter_category %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex-1 min-w-[200px]">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                <select name="location" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">All Locations</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc }}" {% if loc == filter_location %}selected{% endif %}>{{ loc }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="low_stock" id="lowStockFilter" value="1" {% if filter_low_stock %}checked{% endif %} class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <label for="lowStockFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Low Stock Only</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Apply Filters</button>
+            <a href="/inventory" class="btn btn-secondary">Clear</a>
+        </form>
+    </div>
+
+    <!-- Add/Edit Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6" id="itemForm">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ 'Edit Item' if form_item_id else 'Add New Item' }}</h2>
+        <form method="POST" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <input type="hidden" name="item_id" id="formItemId" value="{{ form_item_id or '' }}">
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Name <span class="text-red-500">*</span></label>
+                <input type="text" name="name" id="formName" required value="{{ form_name or '' }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., Milk, Toilet Paper">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Quantity <span class="text-red-500">*</span></label>
+                <input type="number" name="quantity" id="formQuantity" step="0.01" min="0" required value="{{ form_quantity or 0 }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unit</label>
+                <select name="unit" id="formUnit" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="pcs" {% if (form_unit or 'pcs') == 'pcs' %}selected{% endif %}>Pieces (pcs)</option>
+                    <option value="kg" {% if form_unit == 'kg' %}selected{% endif %}>Kilograms (kg)</option>
+                    <option value="g" {% if form_unit == 'g' %}selected{% endif %}>Grams (g)</option>
+                    <option value="l" {% if form_unit == 'l' %}selected{% endif %}>Liters (l)</option>
+                    <option value="ml" {% if form_unit == 'ml' %}selected{% endif %}>Milliliters (ml)</option>
+                    <option value="m" {% if form_unit == 'm' %}selected{% endif %}>Meters (m)</option>
+                    <option value="pack" {% if form_unit == 'pack' %}selected{% endif %}>Pack</option>
+                    <option value="box" {% if form_unit == 'box' %}selected{% endif %}>Box</option>
+                    <option value="bottle" {% if form_unit == 'bottle' %}selected{% endif %}>Bottle</option>
+                    <option value="can" {% if form_unit == 'can' %}selected{% endif %}>Can</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+                <input type="text" name="category" id="formCategory" value="{{ form_category or '' }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., Groceries, Cleaning, Tools" list="categoryList">
+                <datalist id="categoryList">
+                    {% for cat in categories %}
+                    <option value="{{ cat }}">{% endfor %}
+                </datalist>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+                <input type="text" name="location" id="formLocation" value="{{ form_location or '' }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="e.g., Pantry, Fridge, Garage" list="locationList">
+                <datalist id="locationList">
+                    {% for loc in locations %}
+                    <option value="{{ loc }}">{% endfor %}
+                </datalist>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min Quantity (Alert)</label>
+                <input type="number" name="min_quantity" id="formMinQuantity" step="0.01" min="0" value="{{ form_min_quantity or 0 }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Alert when quantity drops below this">
+            </div>
+            
+            <div class="md:col-span-2 lg:col-span-3">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tags (comma-separated)</label>
+                <input type="text" name="tags" id="formTags" value="{{ form_tags or '[]' }}" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder='e.g., ["weekly", "essentials", "bulk"]'>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter as JSON array or comma-separated values</p>
+            </div>
+            
+            <div class="md:col-span-2 lg:col-span-3 flex gap-3">
+                <button type="submit" class="btn btn-primary">{{ 'Update Item' if form_item_id else 'Add Item' }}</button>
+                {% if form_item_id %}
+                <a href="/inventory" class="btn btn-secondary">Cancel Edit</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Inventory Table -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        {% if items %}
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty / Unit</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Min Qty</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tags</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for item in items %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 {% if item.quantity <= item.min_quantity and item.min_quantity > 0 %}bg-red-50 dark:bg-red-900/20{% endif %}" data-item-id="{{ item.id }}">
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-gray-900 dark:text-white">{{ item.name }}</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">by {{ item.creator or '—' }}</div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="font-mono text-gray-900 dark:text-white">{{ item.quantity }} {{ item.unit }}</span>
+                            {% if item.quantity <= item.min_quantity and item.min_quantity > 0 %}
+                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i>Low Stock
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ item.category or '—' }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ item.location or '—' }}</td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300 font-mono">{{ item.min_quantity }}</td>
+                        <td class="px-4 py-3">
+                            {% if item.min_quantity > 0 %}
+                            <div class="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                {% set pct = (item.quantity / item.min_quantity * 100) | int if item.min_quantity > 0 else 100 %}
+                                {% set pct = 100 if pct > 100 else pct %}
+                                <div class="h-full {% if item.quantity <= item.min_quantity %}bg-red-500{% elif pct < 50 %}bg-yellow-500{% else %}bg-green-500{% endif %} transition-all duration-300" style="width: {{ pct }}%"></div>
+                            </div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ pct }}% of minimum</div>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">No minimum set</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% set item_tags = item.tags | from_json %}
+                            {% if item_tags %}
+                            <div class="flex flex-wrap gap-1">
+                                {% for tag in item_tags %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <button type="button" onclick="adjustQuantity({{ item.id }}, -1)" class="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition" title="Decrease by 1" aria-label="Decrease quantity">
+                                    <i class="fa-solid fa-minus"></i>
+                                </button>
+                                <button type="button" onclick="adjustQuantity({{ item.id }}, 1)" class="p-1.5 text-gray-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition" title="Increase by 1" aria-label="Increase quantity">
+                                    <i class="fa-solid fa-plus"></i>
+                                </button>
+                                <a href="/inventory/edit/{{ item.id }}?user={{ item.creator or '' }}" class="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition" title="Edit" aria-label="Edit item">
+                                    <i class="fa-solid fa-pen"></i>
+                                </a>
+                                <form method="POST" action="/inventory/delete/{{ item.id }}" class="inline delete-form" data-creator="{{ item.creator or '' }}">
+                                    <input type="hidden" name="user" value="">
+                                    <button type="submit" onclick="return confirm('Delete this item?')" class="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition" title="Delete" aria-label="Delete item">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <i class="fa-solid fa-boxes text-4xl text-gray-300 dark:text-gray-600 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No items found</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">Add your first inventory item above to get started</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function adjustQuantity(itemId, delta) {
+    fetch('/inventory/adjust/' + itemId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            delta: delta,
+            user: localStorage.getItem('username') || ''
+        })
+    }).then(r => r.json()).then(data => {
+        if (data.ok) {
+            // Update the quantity display
+            const row = document.querySelector('tr[data-item-id="' + itemId + '"]');
+            if (row) {
+                const qtyCell = row.cells[1];
+                const qtyText = qtyCell.querySelector('.font-mono');
+                if (qtyText) {
+                    qtyText.textContent = data.quantity + ' ' + qtyText.textContent.split(' ')[1];
+                }
+                // Update low stock badge
+                const minQty = parseFloat(row.cells[4].textContent);
+                if (data.quantity <= minQty && minQty > 0) {
+                    if (!qtyCell.querySelector('.fa-triangle-exclamation')) {
+                        const badge = document.createElement('span');
+                        badge.className = 'ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200';
+                        badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i>Low Stock';
+                        qtyCell.appendChild(badge);
+                    }
+                    row.classList.add('bg-red-50', 'dark:bg-red-900/20');
+                } else {
+                    const badge = qtyCell.querySelector('.fa-triangle-exclamation');
+                    if (badge) badge.parentElement.remove();
+                    row.classList.remove('bg-red-50', 'dark:bg-red-900/20');
+                }
+                // Update progress bar
+                const progressBar = row.querySelector('.h-full');
+                if (progressBar && minQty > 0) {
+                    const pct = Math.min(100, Math.round(data.quantity / minQty * 100));
+                    progressBar.style.width = pct + '%';
+                    progressBar.className = 'h-full transition-all duration-300 ' + 
+                        (data.quantity <= minQty ? 'bg-red-500' : (pct < 50 ? 'bg-yellow-500' : 'bg-green-500'));
+                    const pctText = row.querySelector('.text-xs.text-gray-500');
+                    if (pctText) pctText.textContent = pct + '% of minimum';
+                }
+            }
+        } else {
+            console.error('Failed to adjust quantity:', data.error);
+        }
+    }).catch(console.error);
+}
+
+// Initialize user context for forms
+document.addEventListener('DOMContentLoaded', function() {
+    const currentUser = localStorage.getItem('username') || '';
+    document.querySelectorAll('input[name="creator"]').forEach(i => i.value = currentUser);
+    document.querySelectorAll('input[name="user"]').forEach(i => i.value = currentUser);
+});
+</script>
+{% endblock %}
