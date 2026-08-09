@@ -4,10 +4,28 @@ from ..models import db, ShoppingItem, GroceryHistory
 from ..blueprints import main_bp
 from ..security import sanitize_text
 import json
+from sqlalchemy import inspect, text
+
+
+def _ensure_shopping_columns():
+    """Ensure shopping_item table has quantity and unit columns."""
+    try:
+        inspector = inspect(db.engine)
+        cols = [c['name'] for c in inspector.get_columns('shopping_item')]
+        with db.engine.begin() as conn:
+            if 'quantity' not in cols:
+                conn.execute(text("ALTER TABLE shopping_item ADD COLUMN quantity REAL DEFAULT 1.0"))
+            if 'unit' not in cols:
+                conn.execute(text("ALTER TABLE shopping_item ADD COLUMN unit VARCHAR(32) DEFAULT 'pcs'"))
+    except Exception as e:
+        current_app.logger.warning(f"Shopping column migration: {e}")
 
 
 @main_bp.route('/shopping', methods=['GET', 'POST'])
 def shopping():
+    # Ensure columns exist (handles PostgreSQL migrations)
+    _ensure_shopping_columns()
+    
     if request.method == 'POST':
         item = sanitize_text(request.form['item'])
         creator = sanitize_text(request.form['creator'])
@@ -192,3 +210,13 @@ def api_delete_shopping_history_item():
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@main_bp.route('/shopping/migrate', methods=['POST'])
+def migrate_shopping():
+    """Manual migration endpoint to add quantity/unit columns."""
+    try:
+        _ensure_shopping_columns()
+        return jsonify({"ok": True, "message": "Shopping migration completed"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
