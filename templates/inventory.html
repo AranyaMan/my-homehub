@@ -45,6 +45,7 @@
         <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">{{ 'Edit Item' if form_item_id else 'Add New Item' }}</h2>
         <form method="POST" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <input type="hidden" name="item_id" id="formItemId" value="{{ form_item_id or '' }}">
+            <input type="hidden" name="creator" id="creator">
             
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Item Name <span class="text-red-500">*</span></label>
