@@ -103,6 +103,11 @@ def create_app(test_config: dict | None = None):
                 # Add 'tags' to shoppingitem and chore for multi-tag feature
                 if not has_column('shopping_item', 'tags'):
                     cur.execute("ALTER TABLE shopping_item ADD COLUMN tags TEXT DEFAULT '[]'")
+                # Add quantity and unit to shopping_item
+                if not has_column('shopping_item', 'quantity'):
+                    cur.execute("ALTER TABLE shopping_item ADD COLUMN quantity REAL DEFAULT 1.0")
+                if not has_column('shopping_item', 'unit'):
+                    cur.execute("ALTER TABLE shopping_item ADD COLUMN unit TEXT DEFAULT 'pcs'")
                 if not has_column('chore', 'tags'):
                     cur.execute("ALTER TABLE chore ADD COLUMN tags TEXT DEFAULT '[]'")
                 # Add 'status' to media

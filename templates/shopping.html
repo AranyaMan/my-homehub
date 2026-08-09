@@ -4,13 +4,31 @@
     <h2 class="text-xl font-bold mb-4">Shopping List</h2>
     <form method="POST" id="shoppingForm" class="mb-2">
         <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
-            <div class="md:col-span-5">
+            <div class="md:col-span-4">
                 <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Item</label>
                 <div class="relative h-11">
                     <input type="text" name="item" id="itemInput" class="w-full h-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Add item..." required autocomplete="off">
                     <!-- Autofill dropdown anchored to input width -->
                     <div id="itemAutoFill" class="absolute left-0 right-0 z-10 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow max-h-72 overflow-auto hidden"></div>
                 </div>
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Qty</label>
+                <input type="number" name="quantity" id="quantityInput" step="0.01" min="0" value="1" class="w-full h-11 p-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Unit</label>
+                <select name="unit" id="unitInput" class="w-full h-11 p-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <option value="pcs">pcs</option>
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="l">l</option>
+                    <option value="ml">ml</option>
+                    <option value="pack">pack</option>
+                    <option value="box">box</option>
+                    <option value="bottle">bottle</option>
+                    <option value="can">can</option>
+                </select>
             </div>
             <div class="md:col-span-4">
                 <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Tags (stores, categories)</label>
@@ -37,9 +55,10 @@
     <ul id="shoppingList" class="space-y-2">
         {% for item in items %}
         {% set tags = (item.tags or '[]') %}
-        <li class="card p-4 flex flex-col gap-2" data-id="{{ item.id }}" data-tags='{{ tags|safe }}' data-checked="{{ '1' if item.checked else '0' }}">
+        <li class="card p-4 flex flex-col gap-2" data-id="{{ item.id }}" data-tags='{{ tags|safe }}' data-checked="{{ '1' if item.checked else '0' }}" data-quantity="{{ item.quantity or 1 }}" data-unit="{{ item.unit or 'pcs' }}">
             <div class="flex flex-wrap gap-2 items-center">
                 <span class="flex-1 {% if item.checked %}line-through text-gray-400{% endif %}">{{ item.item }}</span>
+                <span class="text-sm text-gray-500 dark:text-gray-400 font-mono">{{ item.quantity or 1 }} {{ item.unit or 'pcs' }}</span>
                 <div class="hidden md:flex flex-wrap gap-2 item-tags" data-id="{{ item.id }}"></div>
                 <form method="POST" action="/shopping/check/{{ item.id }}">
                     <button type="submit" class="btn {{ 'btn-secondary' if item.checked else 'btn-success' }}">
@@ -172,6 +191,26 @@ document.addEventListener('user-switched', applyShoppingUserContext);
                     <label class="block text-sm mb-1">Item</label>
                     <input type="text" id="editItemInput" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" />
                 </div>
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <div>
+                        <label class="block text-sm mb-1">Qty</label>
+                        <input type="number" id="editQuantityInput" step="0.01" min="0" value="1" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm mb-1">Unit</label>
+                        <select id="editUnitInput" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <option value="pcs">pcs</option>
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="l">l</option>
+                            <option value="ml">ml</option>
+                            <option value="pack">pack</option>
+                            <option value="box">box</option>
+                            <option value="bottle">bottle</option>
+                            <option value="can">can</option>
+                        </select>
+                    </div>
+                </div>
                 <div>
                     <label class="block text-sm mb-1">Tags</label>
                     <div id="editTagWrap" class="flex flex-wrap gap-2 border border-gray-300 dark:border-gray-600 rounded p-2 focus-within:ring-1 focus-within:ring-blue-500">
@@ -202,6 +241,8 @@ document.addEventListener('user-switched', applyShoppingUserContext);
             let tg=[]; try{ tg = JSON.parse(li.dataset.tags||'[]')||[]; }catch(e){}
             tags = tg.slice(); render();
             itemInput.value = li.querySelector('span.flex-1').textContent.trim();
+            document.getElementById('editQuantityInput').value = li.dataset.quantity || '1';
+            document.getElementById('editUnitInput').value = li.dataset.unit || 'pcs';
                 // Render library in modal
                 const lib = document.getElementById('editTagLibrary');
                 T.renderLibrary(lib, (t)=>{ if(!tags.includes(t)){ tags.push(t); render(); }});
@@ -212,7 +253,13 @@ document.addEventListener('user-switched', applyShoppingUserContext);
             if(!currentId) return;
             // Harvest any pending comma-separated tokens in the edit input
             FormTags.harvestPendingInto(T, tagInput, tags);
-            const payload = { item: itemInput.value.trim(), tags: tags, user: (localStorage.getItem('username') || '') };
+            const payload = { 
+                item: itemInput.value.trim(), 
+                tags: tags, 
+                user: (localStorage.getItem('username') || ''),
+                quantity: parseFloat(document.getElementById('editQuantityInput').value) || 1,
+                unit: document.getElementById('editUnitInput').value || 'pcs'
+            };
             try{
                 const res = await fetch(`/api/shopping/${currentId}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
                 const data = await res.json();
@@ -220,7 +267,14 @@ document.addEventListener('user-switched', applyShoppingUserContext);
                     const li = document.querySelector(`#shoppingList li[data-id="${currentId}"]`);
                     if(li){
                         li.dataset.tags = JSON.stringify(data.item.tags||[]);
+                        li.dataset.quantity = data.item.quantity || 1;
+                        li.dataset.unit = data.item.unit || 'pcs';
                         li.querySelector('span.flex-1').textContent = data.item.item;
+                        // Update quantity display
+                        const qtySpan = li.querySelector('span.font-mono');
+                        if(qtySpan){
+                            qtySpan.textContent = (data.item.quantity || 1) + ' ' + (data.item.unit || 'pcs');
+                        }
                         const hosts = li.querySelectorAll('.item-tags');
                         hosts.forEach(host=>{ host.innerHTML=''; (data.item.tags||[]).forEach(t=> host.appendChild(T.makePill(t))); });
                                     T.recordTags(data.item.tags||[]);

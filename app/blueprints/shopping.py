@@ -24,7 +24,15 @@ def shopping():
                 tags_list = [t.strip() for t in raw_tags.split(',') if t.strip()]
         # sanitize each tag
         tags_list = [sanitize_text(t) for t in tags_list if isinstance(t, str) and t.strip()]
-        shopping_item = ShoppingItem(item=item, creator=creator, tags=json.dumps(tags_list))
+        
+        # Quantity and unit
+        try:
+            quantity = float(request.form.get('quantity') or 1)
+        except ValueError:
+            quantity = 1.0
+        unit = sanitize_text(request.form.get('unit', 'pcs'))
+        
+        shopping_item = ShoppingItem(item=item, creator=creator, tags=json.dumps(tags_list), quantity=quantity, unit=unit)
         db.session.add(shopping_item)
         db.session.add(GroceryHistory(item=item, creator=creator))
         db.session.commit()
@@ -128,7 +136,7 @@ def api_get_shopping():
             tags = json.loads(i.tags or '[]')
         except Exception:
             tags = []
-        return {"id": i.id, "item": i.item, "checked": i.checked, "creator": i.creator, "timestamp": i.timestamp.isoformat(), "tags": tags}
+        return {"id": i.id, "item": i.item, "checked": i.checked, "creator": i.creator, "timestamp": i.timestamp.isoformat(), "tags": tags, "quantity": i.quantity, "unit": i.unit}
     return jsonify([to_dict(i) for i in items])
 
 
@@ -144,6 +152,8 @@ def api_update_shopping(item_id):
             return jsonify({"ok": False, "error": "not allowed"}), 403
         new_item = data.get('item')
         raw_tags = data.get('tags', [])
+        quantity = data.get('quantity')
+        unit = data.get('unit')
         if isinstance(new_item, str):
             item.item = sanitize_text(new_item)
         tags = []
@@ -152,8 +162,15 @@ def api_update_shopping(item_id):
                 if isinstance(t, str):
                     tags.append(sanitize_text(t))
         item.tags = json.dumps(tags)
+        if quantity is not None:
+            try:
+                item.quantity = float(quantity)
+            except (ValueError, TypeError):
+                pass
+        if unit is not None:
+            item.unit = sanitize_text(unit)
         db.session.commit()
-        return jsonify({"ok": True, "item": {"id": item.id, "item": item.item, "tags": tags}})
+        return jsonify({"ok": True, "item": {"id": item.id, "item": item.item, "tags": tags, "quantity": item.quantity, "unit": item.unit}})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
 

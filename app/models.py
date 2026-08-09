@@ -38,6 +38,9 @@ class ShoppingItem(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     # JSON-encoded list of tags (e.g., ["Costco", "Dairy"]) for filtering/grouping
     tags = db.Column(db.Text, default='[]')
+    # Quantity and unit for shopping items
+    quantity = db.Column(db.Float, default=1.0)
+    unit = db.Column(db.String(32), default='pcs')
 
 class GroceryHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
