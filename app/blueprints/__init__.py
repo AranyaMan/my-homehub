@@ -78,6 +78,75 @@ def service_worker():
           );
         });
 
+        self.addEventListener('push', (event) => {
+          if (!event.data) return;
+          const payload = event.data.json();
+          const options = {
+            body: payload.body,
+            icon: payload.icon || '/static/icons/icon-192.png',
+            badge: payload.badge || '/static/icons/icon-192.png',
+            tag: payload.tag,
+            data: payload.data || {},
+            actions: payload.actions || [],
+            requireInteraction: payload.requireInteraction || false,
+            silent: payload.silent || false,
+            vibrate: payload.vibrate || [200, 100, 200]
+          };
+          event.waitUntil(
+            self.registration.showNotification(payload.title, options)
+          );
+        });
+
+        self.addEventListener('notificationclick', (event) => {
+          event.notification.close();
+          const data = event.notification.data || {};
+          const action = event.action;
+          
+          if (action === 'done' && data.chore_id) {
+            // Mark chore as done via API
+            event.waitUntil(
+              fetch('/api/chores/' + data.chore_id + '/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user: localStorage.getItem('username') || '' })
+              }).then(() => {
+                // Refresh the page if it's open
+                self.clients.matchAll({ type: 'window' }).then(clients => {
+                  clients.forEach(client => client.postMessage({ type: 'CHORE_DONE', choreId: data.chore_id }));
+                });
+              }).catch(console.error)
+            );
+            return;
+          }
+          
+          if (action === 'snooze' && data.chore_id) {
+            // Snooze: could schedule a new notification for 1 hour later
+            // For now, just acknowledge
+            console.log('Snoozed chore:', data.chore_id);
+            return;
+          }
+          
+          // Default: open the app
+          const url = data.url || '/';
+          event.waitUntil(
+            self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+              // Try to focus existing window
+              for (const client of clients) {
+                if (client.url.includes(location.origin) && 'focus' in client) {
+                  return client.focus();
+                }
+              }
+              // Open new window
+              return self.clients.openWindow(url);
+            })
+          );
+        });
+
+        self.addEventListener('notificationclose', (event) => {
+          // Optional: track dismissed notifications
+          console.log('Notification dismissed:', event.notification.tag);
+        });
+
         self.addEventListener('fetch', (event) => {
           const req = event.request;
           const url = new URL(req.url);

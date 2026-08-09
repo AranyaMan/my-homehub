@@ -11,3 +11,6 @@ bleach
 pytest
 requests
 psycopg2-binary
+pywebpush
+cryptography
+apscheduler

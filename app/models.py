@@ -197,3 +197,13 @@ class InventoryItem(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     # JSON-encoded list of tags for filtering/grouping
     tags = db.Column(db.Text, default='[]')
+
+class PushSubscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user = db.Column(db.String(64), nullable=False, index=True)
+    endpoint = db.Column(db.Text, nullable=False, unique=True)
+    p256dh = db.Column(db.Text, nullable=False)  # base64url-encoded public key
+    auth = db.Column(db.Text, nullable=False)    # base64url-encoded auth secret
+    user_agent = db.Column(db.Text)              # for debugging
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

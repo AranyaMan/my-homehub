@@ -3,7 +3,17 @@
 <div class="mx-auto">
     <div class="flex items-start justify-between gap-4 mb-4">
         <h2 class="text-xl font-bold">To-Do / Chores</h2>
-        <form method="POST" action="/chores/settings" class="flex items-center gap-2 text-sm hidden" id="homepageToggleForm">
+        <div class="flex items-center gap-2">
+            <!-- Push Notifications Toggle -->
+            <div id="pushNotificationSection" class="flex items-center gap-2">
+                <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" id="pushNotificationsToggle" class="rounded">
+                    <span class="text-gray-600 dark:text-gray-300">Enable push notifications</span>
+                </label>
+                <span id="pushStatus" class="text-xs text-gray-500 hidden"></span>
+                <button type="button" id="pushTestBtn" class="btn btn-secondary text-xs hidden">Test</button>
+            </div>
+            <form method="POST" action="/chores/settings" class="flex items-center gap-2 text-sm hidden" id="homepageToggleForm">
             <input type="hidden" name="user" id="settingsUser">
             <label class="inline-flex items-center gap-2 hidden" id="homepageToggleWrap">
                 <input type="checkbox" name="show_chores_on_homepage" class="rounded" {% if show_chores_on_homepage %}checked{% endif %}>
@@ -308,6 +318,185 @@ document.addEventListener('user-switched', applyChoreUserContext);
     form?.addEventListener('submit', ()=>{
         const val = (input?.value||'').trim();
         if(val){ const base = new Set(getBase()); base.add(val); setBase([...base]); }
+    });
+})();
+</script>
+<script>
+// Push Notifications for Chores
+(function(){
+    const toggle = document.getElementById('pushNotificationsToggle');
+    const statusEl = document.getElementById('pushStatus');
+    const testBtn = document.getElementById('pushTestBtn');
+    if (!toggle) return;
+    
+    const currentUser = localStorage.getItem('username') || '';
+    const vapidPublicKeyEl = document.getElementById('vapidPublicKey');
+    
+    // Check if push is supported
+    const pushSupported = 'serviceWorker' in navigator && 'PushManager' in window;
+    if (!pushSupported) {
+        toggle.disabled = true;
+        toggle.parentElement.title = 'Push notifications not supported in this browser';
+        statusEl.textContent = 'Not supported';
+        statusEl.classList.remove('hidden');
+        return;
+    }
+    
+    // Convert base64url to Uint8Array for PushManager
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
+    }
+    
+    // Update UI based on subscription status
+    async function updatePushUI() {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            
+            if (sub) {
+                toggle.checked = true;
+                statusEl.textContent = 'Enabled';
+                statusEl.className = 'text-xs text-green-600';
+                testBtn.classList.remove('hidden');
+            } else {
+                toggle.checked = false;
+                statusEl.textContent = 'Disabled';
+                statusEl.className = 'text-xs text-gray-500';
+                testBtn.classList.add('hidden');
+            }
+            statusEl.classList.remove('hidden');
+        } catch (e) {
+            console.error('Push status check failed:', e);
+            statusEl.textContent = 'Error';
+            statusEl.className = 'text-xs text-red-600';
+            statusEl.classList.remove('hidden');
+        }
+    }
+    
+    // Subscribe to push
+    async function subscribe() {
+        try {
+            // Get VAPID public key from server
+            const keyResp = await fetch('/api/push/vapid-public-key');
+            const keyData = await keyResp.json();
+            if (!keyData.public_key) {
+                throw new Error('VAPID public key not configured on server');
+            }
+            
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(keyData.public_key)
+            });
+            
+            // Send subscription to server
+            const subData = sub.toJSON();
+            const resp = await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user: currentUser,
+                    endpoint: subData.endpoint,
+                    keys: subData.keys
+                })
+            });
+            
+            const result = await resp.json();
+            if (!result.ok) throw new Error(result.error || 'Subscribe failed');
+            
+            await updatePushUI();
+            if (window.globalToast) globalToast('Push notifications enabled!', 'success');
+        } catch (e) {
+            console.error('Push subscribe failed:', e);
+            toggle.checked = false;
+            if (window.globalToast) globalToast('Failed to enable: ' + e.message, 'error');
+        }
+    }
+    
+    // Unsubscribe from push
+    async function unsubscribe() {
+        try {
+            const reg = await navigator.serviceWorker.ready;
+            const sub = await reg.pushManager.getSubscription();
+            
+            if (sub) {
+                await sub.unsubscribe();
+                
+                // Notify server
+                const subData = sub.toJSON();
+                await fetch('/api/push/unsubscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user: currentUser,
+                        endpoint: subData.endpoint
+                    })
+                });
+            }
+            
+            await updatePushUI();
+            if (window.globalToast) globalToast('Push notifications disabled', 'info');
+        } catch (e) {
+            console.error('Push unsubscribe failed:', e);
+            if (window.globalToast) globalToast('Failed to disable: ' + e.message, 'error');
+        }
+    }
+    
+    // Toggle handler
+    toggle.addEventListener('change', async () => {
+        if (toggle.checked) {
+            await subscribe();
+        } else {
+            await unsubscribe();
+        }
+    });
+    
+    // Test button
+    testBtn.addEventListener('click', async () => {
+        try {
+            const resp = await fetch('/chores/push/test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user: currentUser })
+            });
+            const result = await resp.json();
+            if (result.ok) {
+                if (window.globalToast) globalToast('Test notification sent!', 'success');
+            } else {
+                if (window.globalToast) globalToast('Test failed: ' + result.error, 'error');
+            }
+        } catch (e) {
+            if (window.globalToast) globalToast('Test error: ' + e.message, 'error');
+        }
+    });
+    
+    // Initialize
+    updatePushUI();
+    
+    // Listen for CHORE_DONE messages from service worker
+    navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'CHORE_DONE') {
+            // Refresh chore list or update UI
+            const li = document.querySelector(`#choreList li[data-id="${event.data.choreId}"]`);
+            if (li) {
+                li.dataset.done = '1';
+                const span = li.querySelector('span.flex-1');
+                if (span) span.classList.add('line-through', 'text-gray-400');
+                const toggleForm = li.querySelector('form[action*="/toggle/"] button');
+                if (toggleForm) {
+                    toggleForm.textContent = 'Completed · Undo';
+                    toggleForm.classList.remove('btn-success');
+                    toggleForm.classList.add('btn-secondary');
+                }
+            }
+        }
     });
 })();
 </script>

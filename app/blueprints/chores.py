@@ -1,9 +1,12 @@
 from flask import render_template, request, redirect, url_for, current_app, jsonify, flash, session
 from datetime import datetime, date, timedelta
-from ..models import db, Chore, RecurringChore
+from ..models import db, Chore, RecurringChore, PushSubscription
 from ..blueprints import main_bp
 from ..security import sanitize_text
 import json
+import base64
+from pywebpush import webpush
+from pywebpush import WebPushException
 
 
 def _parse_date(value):
@@ -508,5 +511,216 @@ def api_update_chore(chore_id):
         chore.tags = json.dumps(tags)
         db.session.commit()
         return jsonify({"ok": True, "item": {"id": chore.id, "description": chore.description, "tags": tags}})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+def _get_vapid_keys():
+    """Get VAPID keys from config."""
+    config = current_app.config.get('HOMEHUB_CONFIG', {})
+    push_config = config.get('push_notifications', {})
+    return {
+        'public_key': push_config.get('vapid_public_key', ''),
+        'private_key': push_config.get('vapid_private_key', ''),
+        'subject': push_config.get('vapid_subject', 'mailto:admin@localhost')
+    }
+
+
+def _send_push_notification(subscription, payload):
+    """Send a push notification to a single subscription."""
+    vapid = _get_vapid_keys()
+    if not vapid['private_key'] or not vapid['public_key']:
+        return False, "VAPID keys not configured"
+    
+    try:
+        webpush(
+            subscription_info={
+                'endpoint': subscription.endpoint,
+                'keys': {
+                    'p256dh': subscription.p256dh,
+                    'auth': subscription.auth
+                }
+            },
+            data=json.dumps(payload),
+            vapid_private_key=vapid['private_key'],
+            vapid_claims={"sub": vapid['subject']}
+        )
+        return True, None
+    except WebPushException as e:
+        # If subscription expired (410), we should delete it
+        if e.response and e.response.status_code == 410:
+            db.session.delete(subscription)
+            db.session.commit()
+        return False, str(e)
+    except Exception as e:
+        return False, str(e)
+
+
+@main_bp.route('/api/push/subscribe', methods=['POST'])
+def push_subscribe():
+    """Subscribe current user to push notifications."""
+    try:
+        data = request.get_json(force=True) or {}
+        user = sanitize_text(str(data.get('user', '')))
+        if not user:
+            return jsonify({"ok": False, "error": "user required"}), 400
+        
+        endpoint = data.get('endpoint')
+        keys = data.get('keys', {})
+        p256dh = keys.get('p256dh')
+        auth = keys.get('auth')
+        
+        if not endpoint or not p256dh or not auth:
+            return jsonify({"ok": False, "error": "endpoint and keys required"}), 400
+        
+        # Check if subscription already exists
+        existing = PushSubscription.query.filter_by(endpoint=endpoint).first()
+        if existing:
+            # Update existing
+            existing.user = user
+            existing.p256dh = p256dh
+            existing.auth = auth
+            existing.last_used = datetime.utcnow()
+            existing.user_agent = request.headers.get('User-Agent', '')
+        else:
+            # Create new
+            sub = PushSubscription(
+                user=user,
+                endpoint=endpoint,
+                p256dh=p256dh,
+                auth=auth,
+                user_agent=request.headers.get('User-Agent', '')
+            )
+            db.session.add(sub)
+        
+        db.session.commit()
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@main_bp.route('/api/push/unsubscribe', methods=['POST'])
+def push_unsubscribe():
+    """Unsubscribe current user from push notifications."""
+    try:
+        data = request.get_json(force=True) or {}
+        user = sanitize_text(str(data.get('user', '')))
+        endpoint = data.get('endpoint')
+        
+        if not user or not endpoint:
+            return jsonify({"ok": False, "error": "user and endpoint required"}), 400
+        
+        sub = PushSubscription.query.filter_by(user=user, endpoint=endpoint).first()
+        if sub:
+            db.session.delete(sub)
+            db.session.commit()
+        
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@main_bp.route('/api/push/vapid-public-key', methods=['GET'])
+def push_vapid_public_key():
+    """Return the VAPID public key for client subscription."""
+    vapid = _get_vapid_keys()
+    return jsonify({"public_key": vapid['public_key']})
+
+
+def send_chore_notifications():
+    """Send push notifications for chores due today/tomorrow.
+    This should be called by a scheduler (cron, APScheduler, etc.)."""
+    config = current_app.config.get('HOMEHUB_CONFIG', {})
+    vapid = _get_vapid_keys()
+    
+    if not vapid['private_key'] or not vapid['public_key']:
+        current_app.logger.warning("Push notifications: VAPID keys not configured")
+        return {"sent": 0, "errors": ["VAPID keys not configured"]}
+    
+    today = date.today()
+    tomorrow = today + timedelta(days=1)
+    
+    # Find chores due today or tomorrow that aren't done
+    due_chores = Chore.query.filter(
+        Chore.done == False,
+        Chore.due_date.in_([today, tomorrow])
+    ).all()
+    
+    sent = 0
+    errors = []
+    
+    for chore in due_chores:
+        # Get subscriptions for this user
+        subscriptions = PushSubscription.query.filter_by(user=chore.creator).all()
+        
+        if not subscriptions:
+            continue
+        
+        # Determine message based on due date
+        if chore.due_date == today:
+            title = "Chore Due Today"
+            body = f"{chore.description} is due today!"
+        else:
+            title = "Chore Due Tomorrow"
+            body = f"{chore.description} is due tomorrow!"
+        
+        payload = {
+            "title": title,
+            "body": body,
+            "icon": "/static/icons/icon-192.png",
+            "badge": "/static/icons/icon-192.png",
+            "tag": f"chore-{chore.id}",
+            "data": {
+                "url": "/chores",
+                "chore_id": chore.id,
+                "action": "chore_due"
+            },
+            "actions": [
+                {"action": "done", "title": "Mark Done"},
+                {"action": "snooze", "title": "Snooze 1hr"}
+            ],
+            "requireInteraction": True
+        }
+        
+        for sub in subscriptions:
+            success, error = _send_push_notification(sub, payload)
+            if success:
+                sent += 1
+                sub.last_used = datetime.utcnow()
+            else:
+                errors.append(f"User {sub.user}: {error}")
+    
+    db.session.commit()
+    return {"sent": sent, "errors": errors}
+
+
+@main_bp.route('/chores/push/test', methods=['POST'])
+def push_test():
+    """Test endpoint to send a test notification to current user."""
+    try:
+        data = request.get_json(force=True) or {}
+        user = sanitize_text(str(data.get('user', '')))
+        if not user:
+            return jsonify({"ok": False, "error": "user required"}), 400
+        
+        subscriptions = PushSubscription.query.filter_by(user=user).all()
+        if not subscriptions:
+            return jsonify({"ok": False, "error": "no subscriptions found"}), 404
+        
+        payload = {
+            "title": "Test Notification",
+            "body": "Push notifications are working!",
+            "icon": "/static/icons/icon-192.png",
+            "tag": "test",
+            "data": {"url": "/chores"}
+        }
+        
+        sent = 0
+        for sub in subscriptions:
+            success, _ = _send_push_notification(sub, payload)
+            if success:
+                sent += 1
+        
+        return jsonify({"ok": True, "sent": sent})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400

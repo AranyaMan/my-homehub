@@ -66,3 +66,10 @@ theme:
   sidebar_link_color: "rgba(255,255,255,0.95)"
   sidebar_link_border_color: "rgba(255,255,255,0.18)"
   sidebar_active_color: "#3b82f6"
+
+# Push Notifications (Web Push / PWA)
+# Generate keys with: python scripts/generate_vapid_keys.py
+push_notifications:
+  vapid_public_key: ""   # base64url-encoded uncompressed P-256 public key
+  vapid_private_key: ""  # base64url-encoded PKCS#8 private key
+  vapid_subject: "mailto:admin@yourdomain.com"  # contact for push services
