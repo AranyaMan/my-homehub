@@ -60,6 +60,7 @@ class Chore(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     done = db.Column(db.Boolean, default=False)
     due_date = db.Column(db.Date)
+    due_time = db.Column(db.Time)
     recurring_id = db.Column(db.Integer)
     # JSON-encoded list of tags (e.g., ["Alice", "Weekend"]) for assignment/filtering
     tags = db.Column(db.Text, default='[]')

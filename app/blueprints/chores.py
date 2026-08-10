@@ -18,6 +18,15 @@ def _parse_date(value):
         return None
 
 
+def _parse_time(value):
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, '%H:%M').time()
+    except Exception:
+        return None
+
+
 def _add_months(dt: date, months: int) -> date:
     y = dt.year + (dt.month - 1 + months) // 12
     m = (dt.month - 1 + months) % 12 + 1
@@ -206,6 +215,8 @@ def chores():
                 tags_list = [t.strip() for t in raw_tags.split(',') if t.strip()]
         tags_list = [sanitize_text(t) for t in tags_list if isinstance(t, str) and t.strip()]
         is_recurring = request.form.get('is_recurring') in ('1', 'on', 'true', 'yes')
+        due_date = _parse_date(request.form.get('due_date'))
+        due_time = _parse_time(request.form.get('due_time'))
         if is_recurring:
             try:
                 interval = max(1, int(request.form.get('rec_interval') or 1))
@@ -221,6 +232,8 @@ def chores():
                 return _render_chores_page(
                     form_description=description,
                     form_tags=json.dumps(tags_list),
+                    form_due_date=due_date,
+                    form_due_time=due_time,
                     form_is_recurring=True,
                     form_rec_interval=interval,
                     form_rec_unit=unit,
@@ -234,6 +247,8 @@ def chores():
                 return _render_chores_page(
                     form_description=description,
                     form_tags=json.dumps(tags_list),
+                    form_due_date=due_date,
+                    form_due_time=due_time,
                     form_is_recurring=True,
                     form_rec_interval=interval,
                     form_rec_unit=unit,
@@ -283,6 +298,7 @@ def chores():
                         creator=creator,
                         tags=json.dumps(tags_list),
                         due_date=next_due,
+                        due_time=due_time,
                         recurring_id=rule.id,
                         done=False,
                     ))
@@ -305,10 +321,12 @@ def chores():
                     return redirect(url_for('main.chores'))
                 chore.description = description
                 chore.tags = json.dumps(tags_list)
+                chore.due_date = due_date
+                chore.due_time = due_time
                 db.session.commit()
                 flash('Chore updated.', 'success')
             else:
-                chore = Chore(description=description, creator=creator, tags=json.dumps(tags_list))
+                chore = Chore(description=description, creator=creator, tags=json.dumps(tags_list), due_date=due_date, due_time=due_time)
                 db.session.add(chore)
                 db.session.commit()
                 flash('Chore added.', 'success')
@@ -331,6 +349,8 @@ def edit_chore(chore_id):
     form_state = {
         'form_description': chore.description,
         'form_tags': chore.tags or '[]',
+        'form_due_date': chore.due_date,
+        'form_due_time': chore.due_time,
         'form_is_recurring': False,
         'form_rec_interval': 1,
         'form_rec_unit': 'day',
@@ -484,6 +504,7 @@ def api_get_chores():
             "creator": i.creator,
             "timestamp": i.timestamp.isoformat(),
             "due_date": i.due_date.strftime('%Y-%m-%d') if i.due_date else None,
+            "due_time": i.due_time.strftime('%H:%M') if i.due_time else None,
             "recurring_id": i.recurring_id,
             "tags": tg,
         }
@@ -501,6 +522,8 @@ def api_update_chore(chore_id):
             return jsonify({"ok": False, "error": "not allowed"}), 403
         desc = data.get('description')
         raw_tags = data.get('tags', [])
+        due_date_str = data.get('due_date')
+        due_time_str = data.get('due_time')
         if isinstance(desc, str):
             chore.description = sanitize_text(desc)
         tags = []
@@ -509,8 +532,16 @@ def api_update_chore(chore_id):
                 if isinstance(t, str):
                     tags.append(sanitize_text(t))
         chore.tags = json.dumps(tags)
+        if due_date_str:
+            chore.due_date = _parse_date(due_date_str)
+        else:
+            chore.due_date = None
+        if due_time_str:
+            chore.due_time = _parse_time(due_time_str)
+        else:
+            chore.due_time = None
         db.session.commit()
-        return jsonify({"ok": True, "item": {"id": chore.id, "description": chore.description, "tags": tags}})
+        return jsonify({"ok": True, "item": {"id": chore.id, "description": chore.description, "tags": tags, "due_date": chore.due_date.strftime('%Y-%m-%d') if chore.due_date else None, "due_time": chore.due_time.strftime('%H:%M') if chore.due_time else None}})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
 
@@ -639,8 +670,10 @@ def send_chore_notifications():
     
     today = date.today()
     tomorrow = today + timedelta(days=1)
+    now = datetime.now().time()
     
     # Find chores due today or tomorrow that aren't done
+    # For time-based chores, only notify if the time has passed or is within the next hour
     due_chores = Chore.query.filter(
         Chore.done == False,
         Chore.due_date.in_([today, tomorrow])
@@ -650,6 +683,37 @@ def send_chore_notifications():
     errors = []
     
     for chore in due_chores:
+        # Check if we should notify based on time
+        should_notify = False
+        time_str = ""
+        
+        if chore.due_time:
+            # For chores with specific time, notify if time has passed or within next hour
+            # This function is typically run hourly, so we check if the chore time is in the current hour
+            chore_hour = chore.due_time.hour
+            current_hour = now.hour
+            
+            if chore.due_date == today:
+                if chore_hour == current_hour or (chore_hour == current_hour + 1 and now.minute >= 50):
+                    should_notify = True
+                    time_str = f" at {chore.due_time.strftime('%H:%M')}"
+            elif chore.due_date == tomorrow:
+                # For tomorrow, notify in the evening (e.g., after 6 PM) as a reminder
+                if current_hour >= 18 and chore_hour <= 12:
+                    should_notify = True
+                    time_str = f" at {chore.due_time.strftime('%H:%M')}"
+        else:
+            # For chores without specific time, notify once per day
+            if chore.due_date == today:
+                should_notify = True
+                time_str = " today"
+            elif chore.due_date == tomorrow:
+                should_notify = True
+                time_str = " tomorrow"
+        
+        if not should_notify:
+            continue
+        
         # Get subscriptions for this user
         subscriptions = PushSubscription.query.filter_by(user=chore.creator).all()
         
@@ -662,10 +726,10 @@ def send_chore_notifications():
         
         if chore.due_date == today:
             title = f"{instance_name}: Chore Due Today"
-            body = f"📋 {chore.description} is due today!"
+            body = f"📋 {chore.description} is due{time_str}!"
         else:
             title = f"{instance_name}: Chore Due Tomorrow"
-            body = f"📋 {chore.description} is due tomorrow!"
+            body = f"📋 {chore.description} is due{time_str}!"
         
         payload = {
             "title": title,

@@ -45,6 +45,14 @@
                 <div class="mt-2 flex flex-wrap gap-2 text-xs" id="tagLibrary"></div>
             </div>
             <div class="md:col-span-3">
+                <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Due Date</label>
+                <input type="date" name="due_date" id="dueDateInput" value="{{ form_due_date.strftime('%Y-%m-%d') if form_due_date is defined and form_due_date else '' }}" class="w-full h-11 p-2 border border-gray-300 dark:border-gray-600 rounded">
+            </div>
+            <div class="md:col-span-3">
+                <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1">Due Time (optional)</label>
+                <input type="time" name="due_time" id="dueTimeInput" value="{{ form_due_time.strftime('%H:%M') if form_due_time is defined and form_due_time else '' }}" class="w-full h-11 p-2 border border-gray-300 dark:border-gray-600 rounded">
+            </div>
+            <div class="md:col-span-3">
                 <label class="block text-sm text-gray-600 dark:text-gray-300 mb-1 opacity-0">Action</label>
                 <input type="hidden" name="creator" id="creator">
                 <input type="hidden" name="user" id="choreUser">
@@ -121,10 +129,10 @@
                         {% if chore.due_date %}
                             {% set is_overdue = today_date and chore.due_date < today_date %}
                             {% set is_today = today_date and chore.due_date == today_date %}
-                            • <span class="font-semibold {% if is_overdue %}text-red-600{% elif is_today %}text-amber-600{% else %}text-green-600{% endif %}">Next due on {{ chore.due_date.strftime('%Y-%m-%d') }}</span>
+                            • <span class="font-semibold {% if is_overdue %}text-red-600{% elif is_today %}text-amber-600{% else %}text-green-600{% endif %}">Next due on {{ chore.due_date.strftime('%Y-%m-%d') }}{% if chore.due_time %} at {{ chore.due_time.strftime('%H:%M') }}{% endif %}</span>
                         {% endif %}
                     {% elif chore.due_date %}
-                        • Due {{ chore.due_date.strftime('%Y-%m-%d') }}
+                        • Due {{ chore.due_date.strftime('%Y-%m-%d') }}{% if chore.due_time %} at {{ chore.due_time.strftime('%H:%M') }}{% endif %}
                     {% endif %}
                 </div>
                 <div class="flex-1"></div>
