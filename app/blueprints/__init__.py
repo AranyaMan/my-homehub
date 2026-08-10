@@ -28,7 +28,8 @@ def manifest_webmanifest():
             {"src": "/static/icons/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any"},
             {"src": "/static/icons/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any"},
             {"src": "/static/icons/homehub.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any"}
-        ]
+        ],
+        "gcm_sender_id": "103953800507"  # Required for Android FCM push notifications
     }
     return Response(json.dumps(manifest), mimetype='application/manifest+json')
 
