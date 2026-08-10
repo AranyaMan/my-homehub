@@ -232,6 +232,10 @@
                     if (switcher){ switcher.value = selected; }
                     renderWelcome();
                     applyUserContext();
+                    // Update service worker with new user
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: selected });
+                    }
                 }
                 modal.classList.add('hidden');
                 modal.classList.remove('flex');
@@ -265,6 +269,10 @@
                     applyUserContext();
                     // Notify page-level listeners to update UI without refresh
                     document.dispatchEvent(new CustomEvent('user-switched', { detail: { user: this.value }}));
+                    // Update service worker with new user
+                    if (navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: this.value });
+                    }
                 });
             }
             renderWelcome();
@@ -350,14 +358,27 @@
 </body>
 <script src="/static/js/reminders_api.js"></script>
 <script>
-// Register Service Worker for PWA
-(function(){
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function(){
-            navigator.serviceWorker.register('/sw.js', { scope: '/' })
-                .catch(function(err){ console.warn('SW registration failed', err); });
-        });
-    }
-})();
-</script>
+    // Register Service Worker for PWA
+    (function(){
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function(){
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(function(reg) {
+                        // Send user info to service worker when ready
+                        const currentUser = localStorage.getItem('username') || '';
+                        if (currentUser && reg.active) {
+                            reg.active.postMessage({ type: 'SET_USER', user: currentUser });
+                        }
+                        // Also listen for controller changes
+                        navigator.serviceWorker.addEventListener('controllerchange', function() {
+                            if (navigator.serviceWorker.controller) {
+                                navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: currentUser });
+                            }
+                        });
+                    })
+                    .catch(function(err){ console.warn('SW registration failed', err); });
+            });
+        }
+    })();
+    </script>
 </html>

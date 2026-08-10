@@ -67,6 +67,9 @@ def service_worker():
           '/static/js/reminders_api.js'
         ];
 
+        // Store user info from client messages
+        let currentUser = '';
+
         self.addEventListener('install', (event) => {
           event.waitUntil(
             caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE)).then(() => self.skipWaiting())
@@ -89,9 +92,9 @@ def service_worker():
             tag: payload.tag,
             data: payload.data || {},
             actions: payload.actions || [],
-            requireInteraction: payload.requireInteraction || false,
+            requireInteraction: payload.requireInteraction !== false,
             silent: payload.silent || false,
-            vibrate: payload.vibrate || [200, 100, 200]
+            vibrate: payload.vibrate || [200, 100, 200],
             timestamp: payload.timestamp || Date.now(),
             renotify: payload.renotify || false
           };
@@ -108,10 +111,10 @@ def service_worker():
           if (action === 'done' && data.chore_id) {
             // Mark chore as done via API
             event.waitUntil(
-              fetch('/api/chores/' + data.chore_id + '/toggle', {
+              fetch('/chores/toggle/' + data.chore_id, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user: localStorage.getItem('username') || '' })
+                body: JSON.stringify({ user: currentUser })
               }).then(() => {
                 // Refresh the page if it's open
                 self.clients.matchAll({ type: 'window' }).then(clients => {
@@ -130,7 +133,7 @@ def service_worker():
           }
           
           // Default: open the app
-          const url = data.url || '/';
+          const url = data.url || '/chores';
           event.waitUntil(
             self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
               // Try to focus existing window
@@ -148,6 +151,15 @@ def service_worker():
         self.addEventListener('notificationclose', (event) => {
           // Optional: track dismissed notifications
           console.log('Notification dismissed:', event.notification.tag);
+        });
+
+        // Handle messages from clients (e.g., user info)
+        self.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'SET_USER') {
+            currentUser = event.data.user || '';
+          } else if (event.data && event.data.type === 'SKIP_WAITING') {
+            self.skipWaiting();
+          }
         });
 
         self.addEventListener('fetch', (event) => {
