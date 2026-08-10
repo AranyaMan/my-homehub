@@ -657,12 +657,15 @@ def send_chore_notifications():
             continue
         
         # Determine message based on due date
+        config = current_app.config.get('HOMEHUB_CONFIG', {})
+        instance_name = config.get('instance_name', 'HomeHub')
+        
         if chore.due_date == today:
-            title = "Chore Due Today"
-            body = f"{chore.description} is due today!"
+            title = f"{instance_name}: Chore Due Today"
+            body = f"📋 {chore.description} is due today!"
         else:
-            title = "Chore Due Tomorrow"
-            body = f"{chore.description} is due tomorrow!"
+            title = f"{instance_name}: Chore Due Tomorrow"
+            body = f"📋 {chore.description} is due tomorrow!"
         
         payload = {
             "title": title,
@@ -679,7 +682,10 @@ def send_chore_notifications():
                 {"action": "done", "title": "Mark Done"},
                 {"action": "snooze", "title": "Snooze 1hr"}
             ],
-            "requireInteraction": True
+            "requireInteraction": True,
+            "vibrate": [200, 100, 200],
+            "silent": False,
+            "renotify": True
         }
         
         for sub in subscriptions:
@@ -708,9 +714,13 @@ def push_test():
             return jsonify({"ok": False, "error": "no subscriptions found"}), 404
         
         # Full payload with all required fields for proper notification display
+        # Use instance name for branding to avoid "spam" classification
+        config = current_app.config.get('HOMEHUB_CONFIG', {})
+        instance_name = config.get('instance_name', 'HomeHub')
+        
         payload = {
-            "title": "Test Notification",
-            "body": "Push notifications are working!",
+            "title": f"{instance_name} - Test",
+            "body": "Push notifications are working correctly!",
             "icon": "/static/icons/icon-192.png",
             "badge": "/static/icons/icon-192.png",
             "tag": "test-" + str(int(datetime.utcnow().timestamp())),
@@ -721,7 +731,8 @@ def push_test():
             ],
             "requireInteraction": True,
             "vibrate": [200, 100, 200],
-            "silent": False
+            "silent": False,
+            "renotify": True
         }
         
         sent = 0

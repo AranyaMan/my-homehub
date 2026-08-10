@@ -92,6 +92,8 @@ def service_worker():
             requireInteraction: payload.requireInteraction || false,
             silent: payload.silent || false,
             vibrate: payload.vibrate || [200, 100, 200]
+            timestamp: payload.timestamp || Date.now(),
+            renotify: payload.renotify || false
           };
           event.waitUntil(
             self.registration.showNotification(payload.title, options)
