@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="mx-auto">
-    <div class="flex items-start justify-between gap-4 mb-4">
-        <h2 class="text-xl font-bold">To-Do / Chores</h2>
-        <div class="flex items-center gap-2">
+<div class="mx-auto max-w-7xl px-4">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4 flex-wrap">
+        <div class="flex items-center gap-4 flex-1 min-w-0">
+            <h2 class="text-xl font-bold truncate">To-Do / Chores</h2>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
             <!-- Push Notifications Toggle -->
-            <div id="pushNotificationSection" class="flex items-center gap-2">
-                <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+            <div id="pushNotificationSection" class="flex items-center gap-2 flex-shrink-0">
+                <label class="inline-flex items-center gap-2 text-sm cursor-pointer whitespace-nowrap">
                     <input type="checkbox" id="pushNotificationsToggle" class="rounded">
                     <span class="text-gray-600 dark:text-gray-300">Enable push notifications</span>
                 </label>
@@ -14,13 +16,14 @@
                 <button type="button" id="pushTestBtn" class="btn btn-secondary text-xs hidden">Test</button>
             </div>
             <form method="POST" action="/chores/settings" class="flex items-center gap-2 text-sm hidden" id="homepageToggleForm">
-            <input type="hidden" name="user" id="settingsUser">
-            <label class="inline-flex items-center gap-2 hidden" id="homepageToggleWrap">
-                <input type="checkbox" name="show_chores_on_homepage" class="rounded" {% if show_chores_on_homepage %}checked{% endif %}>
-                <span class="text-gray-600 dark:text-gray-300">Show on welcome page</span>
-            </label>
-            <button type="submit" class="btn btn-secondary hidden" id="homepageSaveBtn">Save</button>
-        </form>
+                <input type="hidden" name="user" id="settingsUser">
+                <label class="inline-flex items-center gap-2 hidden" id="homepageToggleWrap">
+                    <input type="checkbox" name="show_chores_on_homepage" class="rounded" {% if show_chores_on_homepage %}checked{% endif %}>
+                    <span class="text-gray-600 dark:text-gray-300">Show on welcome page</span>
+                </label>
+                <button type="submit" class="btn btn-secondary hidden" id="homepageSaveBtn">Save</button>
+            </form>
+        </div>
     </div>
     <form method="POST" action="/chores" id="choreForm" class="mb-2">
         <input type="hidden" name="chore_id" id="choreId" value="{{ form_chore_id if form_chore_id is defined else '' }}">
