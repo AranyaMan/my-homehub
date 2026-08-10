@@ -7,7 +7,7 @@ import subprocess
 main_bp = Blueprint('main', __name__)
 
 # Default SW cache version; can be overridden by env SW_CACHE_VERSION or git tag
-DEFAULT_SW_CACHE_VERSION = "1"
+DEFAULT_SW_CACHE_VERSION = "2"
 
 
 @main_bp.route('/manifest.webmanifest')

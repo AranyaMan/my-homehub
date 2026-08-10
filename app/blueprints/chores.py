@@ -707,20 +707,58 @@ def push_test():
         if not subscriptions:
             return jsonify({"ok": False, "error": "no subscriptions found"}), 404
         
+        # Full payload with all required fields for proper notification display
         payload = {
             "title": "Test Notification",
             "body": "Push notifications are working!",
             "icon": "/static/icons/icon-192.png",
-            "tag": "test",
-            "data": {"url": "/chores"}
+            "badge": "/static/icons/icon-192.png",
+            "tag": "test-" + str(int(datetime.utcnow().timestamp())),
+            "data": {"url": "/chores"},
+            "actions": [
+                {"action": "done", "title": "Mark Done"},
+                {"action": "snooze", "title": "Snooze 1hr"}
+            ],
+            "requireInteraction": True,
+            "vibrate": [200, 100, 200],
+            "silent": False
         }
         
         sent = 0
         for sub in subscriptions:
-            success, _ = _send_push_notification(sub, payload)
+            success, error = _send_push_notification(sub, payload)
             if success:
                 sent += 1
+            else:
+                current_app.logger.error(f"Push test failed for user {user}: {error}")
         
-        return jsonify({"ok": True, "sent": sent})
+        return jsonify({"ok": True, "sent": sent, "subscriptions": len(subscriptions)})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
+
+
+@main_bp.route('/chores/push/debug', methods=['GET'])
+def push_debug():
+    """Debug endpoint to check push subscription status."""
+    user = request.args.get('user', '')
+    if not user:
+        user = request.headers.get('X-User', '')
+    
+    subscriptions = PushSubscription.query.filter_by(user=user).all() if user else PushSubscription.query.all()
+    
+    return jsonify({
+        "user": user,
+        "subscription_count": len(subscriptions),
+        "subscriptions": [
+            {
+                "endpoint": sub.endpoint[:50] + "...",
+                "p256dh": sub.p256dh[:20] + "...",
+                "auth": sub.auth[:20] + "...",
+                "user_agent": sub.user_agent,
+                "created_at": sub.created_at.isoformat() if sub.created_at else None,
+                "last_used": sub.last_used.isoformat() if sub.last_used else None,
+            }
+            for sub in subscriptions
+        ],
+        "vapid_configured": bool(current_app.config.get('HOMEHUB_CONFIG', {}).get('push_notifications', {}).get('vapid_public_key'))
+    })
