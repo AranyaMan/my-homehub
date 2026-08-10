@@ -57,4 +57,19 @@ def load_config():
     weather.setdefault('timezone', '')
     weather.setdefault('units', 'metric')
     weather.setdefault('view', 'compact')
+    
+    # Push Notifications defaults
+    push = config.setdefault('push_notifications', {})
+    push.setdefault('vapid_public_key', '')
+    push.setdefault('vapid_private_key', '')
+    push.setdefault('vapid_subject', 'mailto:admin@localhost')
+    
+    # Allow override via environment variables (useful for Render/secrets)
+    if os.environ.get('VAPID_PUBLIC_KEY'):
+        push['vapid_public_key'] = os.environ['VAPID_PUBLIC_KEY']
+    if os.environ.get('VAPID_PRIVATE_KEY'):
+        push['vapid_private_key'] = os.environ['VAPID_PRIVATE_KEY']
+    if os.environ.get('VAPID_SUBJECT'):
+        push['vapid_subject'] = os.environ['VAPID_SUBJECT']
+    
     return config
