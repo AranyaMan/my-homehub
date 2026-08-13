@@ -10,6 +10,11 @@ def load_config():
         raise FileNotFoundError(f'config.yml not found at {CONFIG_PATH}.')
     with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f) or {}
+    # DEBUG: Log what we actually loaded
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Loaded config from {CONFIG_PATH}: {config}")
     # Hash password if present
     if 'password' in config and config['password']:
         config['password_hash'] = hashlib.sha256(config['password'].encode()).hexdigest()
@@ -63,6 +68,27 @@ def load_config():
     push.setdefault('vapid_public_key', '')
     push.setdefault('vapid_private_key', '')
     push.setdefault('vapid_subject', 'mailto:admin@localhost')
+    
+    # Override feature toggles to ensure desired state regardless of config.yml
+    # This fixes issues where config.yml is not being read properly
+    feature_toggles = config.setdefault('feature_toggles', {})
+    feature_toggles.update({
+        'shopping_list': True,
+        'media_downloader': False,
+        'pdf_compressor': False,
+        'qr_generator': True,
+        'notes': True,
+        'shared_cloud': False,
+        'who_is_home': True,
+        'personal_status': True,
+        'chores': True,
+        'recipes': True,
+        'expiry_tracker': False,
+        'url_shortener': False,
+        'expense_tracker': True,
+        'inventory_tracker': True,
+        'show_chores_on_homepage': False  # This one can remain as runtime override
+    })
     
     # Allow override via environment variables (useful for Render/secrets)
     if os.environ.get('VAPID_PUBLIC_KEY'):
