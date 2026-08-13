@@ -113,8 +113,13 @@
                 </div>
             </div>
 <nav class="flex-1 p-4 space-y-2 overflow-y-auto" id="sidebarNav">
-        <div style="background: #ff0000; color: white; padding: 10px; text-align: center; margin-bottom: 10px; font-weight: bold;">
-            DEPLOYMENT TEST: IF YOU SEE THIS, THE LATEST CODE IS DEPLOYED
+        <!-- DEBUG: Show feature toggle values -->
+        <div style="background: #ffff00; color: #000000; padding: 5px; font-size: 10px; margin-bottom: 10px;">
+            Shared Cloud: {{ config.feature_toggles.get('shared_cloud', 'MISSING') }}<br>
+            Media Downloader: {{ config.feature_toggles.get('media_downloader', 'MISSING') }}<br>
+            Expiry Tracker: {{ config.feature_toggles.get('expiry_tracker', 'MISSING') }}<br>
+            URL Shortener: {{ config.feature_toggles.get('url_shortener', 'MISSING') }}<br>
+            PDF Compressor: {{ config.feature_toggles.get('pdf_compressor', 'MISSING') }}
         </div>
         <a href="/" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="Welcome"><i class="fa-solid fa-house w-5 text-center"></i><span class="nav-label">Welcome</span></a>
                 {% if config.feature_toggles.get('notes') %}<a href="/notes" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="Shared Notes"><i class="fa-solid fa-note-sticky w-5 text-center"></i><span class="nav-label">Shared Notes</span></a>{% endif %}
