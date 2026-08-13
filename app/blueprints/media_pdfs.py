@@ -1,6 +1,6 @@
 import os, re, shutil, subprocess
 from threading import Thread
-from flask import render_template, request, redirect, url_for, send_from_directory, jsonify, current_app, flash
+from flask import render_template, request, redirect, url_for, send_from_directory, jsonify, current_app, flash, abort
 from datetime import datetime
 from ..models import db, Media, PDF
 from ..blueprints import main_bp
@@ -15,6 +15,8 @@ PDF_FOLDER = os.path.join(BASE_DIR, 'pdfs')
 
 @main_bp.route('/media', methods=['GET', 'POST'])
 def media():
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('media_downloader', False):
+        abort(404)
     if request.method == 'POST':
         url = sanitize_text(request.form['url'])
         creator = sanitize_text(request.form['creator'])
@@ -88,17 +90,23 @@ def media():
 
 @main_bp.route('/media/status/<int:media_id>')
 def media_status(media_id):
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('media_downloader', False):
+        abort(404)
     m = Media.query.get_or_404(media_id)
     return jsonify({'status': m.status, 'progress': m.progress, 'filepath': m.filepath})
 
 
 @main_bp.route('/media/<filename>')
 def serve_media(filename):
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('media_downloader', False):
+        abort(404)
     return send_from_directory(MEDIA_FOLDER, filename, as_attachment=True)
 
 
 @main_bp.route('/media/preview/<filename>')
 def preview_media(filename):
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('media_downloader', False):
+        abort(404)
     """Serve media file for preview (inline) with security headers"""
     # Add security headers to prevent script execution
     from flask import make_response
@@ -111,6 +119,8 @@ def preview_media(filename):
 
 @main_bp.route('/media/delete/<int:media_id>', methods=['POST'])
 def delete_media(media_id):
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('media_downloader', False):
+        abort(404)
     m = Media.query.get_or_404(media_id)
     user = sanitize_text(request.form['user'])
     admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
@@ -131,6 +141,8 @@ def delete_media(media_id):
 
 @main_bp.route('/pdfs', methods=['GET', 'POST'])
 def pdfs():
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('pdf_compressor', False):
+        abort(404)
     if request.method == 'POST':
         pdf_file = request.files['pdf']
         creator = sanitize_text(request.form['creator'])
@@ -170,11 +182,15 @@ def pdfs():
 
 @main_bp.route('/pdfs/<filename>')
 def serve_pdf(filename):
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('pdf_compressor', False):
+        abort(404)
     return send_from_directory(PDF_FOLDER, filename, as_attachment=True)
 
 
 @main_bp.route('/pdfs/preview/<filename>')
 def preview_pdf(filename):
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('pdf_compressor', False):
+        abort(404)
     """Serve PDF file for preview (inline) with security headers"""
     from flask import make_response
     response = make_response(send_from_directory(PDF_FOLDER, filename, as_attachment=False))
@@ -186,6 +202,8 @@ def preview_pdf(filename):
 
 @main_bp.route('/pdfs/delete/<int:pdf_id>', methods=['POST'])
 def delete_pdf(pdf_id):
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('pdf_compressor', False):
+        abort(404)
     p = PDF.query.get_or_404(pdf_id)
     user = sanitize_text(request.form['user'])
     admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')

@@ -1,5 +1,5 @@
 import os
-from flask import render_template, request, redirect, url_for, send_from_directory, current_app, make_response
+from flask import render_template, request, redirect, url_for, send_from_directory, current_app, make_response, abort
 from werkzeug.utils import secure_filename
 from ..models import db, File
 from ..blueprints import main_bp
@@ -12,6 +12,8 @@ UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
 
 @main_bp.route('/upload', methods=['GET', 'POST'])
 def upload():
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('shared_cloud', False):
+        abort(404)
     if request.method == 'POST':
         files = request.files.getlist('files') or ([request.files['file']] if 'file' in request.files else [])
         creator = sanitize_text(request.form['creator'])

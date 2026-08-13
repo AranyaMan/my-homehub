@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, current_app, flash
+from flask import render_template, request, redirect, url_for, current_app, flash, abort
 from ..models import db, ShortURL
 from ..utils import generate_short_code
 from ..blueprints import main_bp
@@ -7,6 +7,8 @@ from ..security import sanitize_text, is_http_url
 
 @main_bp.route('/shorten', methods=['GET', 'POST'])
 def shorten():
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('url_shortener', False):
+        abort(404)
     if request.method == 'POST':
         original_url = sanitize_text(request.form['original_url'])
         creator = sanitize_text(request.form['creator'])

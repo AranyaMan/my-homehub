@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, current_app
+from flask import render_template, request, redirect, url_for, current_app, abort
 from datetime import datetime, date
 from ..models import db, ExpiryItem
 from ..blueprints import main_bp
@@ -7,6 +7,8 @@ from ..security import sanitize_text
 
 @main_bp.route('/expiry', methods=['GET', 'POST'])
 def expiry():
+    if not current_app.config['HOMEHUB_CONFIG'].get('feature_toggles', {}).get('expiry_tracker', False):
+        abort(404)
     if request.method == 'POST':
         name = sanitize_text(request.form['name'])
         expiry_date = request.form['expiry_date']
