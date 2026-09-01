@@ -93,9 +93,6 @@ def inventory():
             
             if item_id:
                 item = InventoryItem.query.get_or_404(int(item_id))
-                if not (user in admin_aliases or user == (item.creator or '')):
-                    flash('Not allowed to update item.', 'error')
-                    return redirect(url_for('main.inventory'))
                 item.name = name
                 item.quantity = quantity
                 item.unit = unit
@@ -138,12 +135,6 @@ def inventory():
 def edit_inventory_item(item_id):
     item = InventoryItem.query.get_or_404(item_id)
     if request.method == 'POST':
-        user = _request_user()
-        admin_aliases = _admin_aliases()
-        creator = item.creator or ''
-        if creator and user not in admin_aliases and user != creator:
-            flash('Not allowed to edit item.', 'error')
-            return redirect(url_for('main.inventory'))
         try:
             name = sanitize_text(request.form.get('name', ''))
             if not name:
