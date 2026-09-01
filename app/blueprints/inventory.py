@@ -134,18 +134,70 @@ def inventory():
     return _render_inventory_page()
 
 
-@main_bp.route('/inventory/edit/<int:item_id>')
+@main_bp.route('/inventory/edit/<int:item_id>', methods=['GET', 'POST'])
 def edit_inventory_item(item_id):
     item = InventoryItem.query.get_or_404(item_id)
-    user = request.args.get('user')
-    if not user:
-        user = request.args.get('creator')
-    user = sanitize_text(user or '')
-    admin_aliases = _admin_aliases()
-    creator = (item.creator or '')
-    if not (user in admin_aliases or user == creator):
-        flash('Not allowed to edit item.', 'error')
+    if request.method == 'POST':
+        user = _request_user()
+        admin_aliases = _admin_aliases()
+        creator = item.creator or ''
+        if user not in admin_aliases and user != creator:
+            flash('Not allowed to edit item.', 'error')
+            return redirect(url_for('main.inventory'))
+        try:
+            name = sanitize_text(request.form.get('name', ''))
+            if not name:
+                flash('Item name is required.', 'error')
+                return _render_inventory_page(
+                    form_name=request.form.get('name', ''),
+                    form_quantity=request.form.get('quantity', ''),
+                    form_unit=request.form.get('unit', ''),
+                    form_category=request.form.get('category', ''),
+                    form_location=request.form.get('location', ''),
+                    form_min_quantity=request.form.get('min_quantity', ''),
+                    form_tags=request.form.get('tags', ''),
+                )
+            quantity = float(request.form.get('quantity') or 0)
+            unit = sanitize_text(request.form.get('unit', 'pcs'))
+            category = sanitize_text(request.form.get('category', ''))
+            location = sanitize_text(request.form.get('location', ''))
+            min_quantity = float(request.form.get('min_quantity') or 0)
+            raw_tags = request.form.get('tags', '').strip()
+            tags_list = []
+            if raw_tags:
+                try:
+                    tags_list = json.loads(raw_tags)
+                    if not isinstance(tags_list, list):
+                        tags_list = []
+                except Exception:
+                    tags_list = [t.strip() for t in raw_tags.split(',') if t.strip()]
+            tags_list = [sanitize_text(t) for t in tags_list if isinstance(t, str) and t.strip()]
+
+            item.name = name
+            item.quantity = quantity
+            item.unit = unit
+            item.category = category
+            item.location = location
+            item.min_quantity = min_quantity
+            item.tags = json.dumps(tags_list)
+
+            db.session.commit()
+            flash('Item updated.', 'success')
+        except Exception as e:
+            current_app.logger.exception('Error updating inventory item')
+            flash(f'Error updating item: {str(e)}', 'error')
+            return _render_inventory_page(
+                form_name=request.form.get('name', ''),
+                form_quantity=request.form.get('quantity', ''),
+                form_unit=request.form.get('unit', ''),
+                form_category=request.form.get('category', ''),
+                form_location=request.form.get('location', ''),
+                form_min_quantity=request.form.get('min_quantity', ''),
+                form_tags=request.form.get('tags', ''),
+            )
         return redirect(url_for('main.inventory'))
+
+    # GET request
     try:
         item_tags = json.loads(item.tags or '[]')
     except Exception:
