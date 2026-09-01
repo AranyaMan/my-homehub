@@ -287,9 +287,3 @@ def api_get_inventory():
             "is_low_stock": i.quantity <= i.min_quantity,
         }
     return jsonify([to_dict(i) for i in items])
-</parameter>
-<parameter=filePath>
-C:/Users/Arany/.antigravity-ide/Homehub/homehub/app/blueprints/inventory.py
-</parameter>
-</function>
-</tool_call>
