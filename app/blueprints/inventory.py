@@ -12,10 +12,10 @@ def _request_user() -> str:
     user = session.get("username")
     if user:
         return sanitize_text(user)
-    user = session.get("username")
+    user = request.form.get('user', '') or request.form.get('creator', '')
     if user:
         return sanitize_text(user)
-    return sanitize_text(request.form.get('user', ''))
+    return ''
 
 def _render_inventory_page(**form_state):
     filter_category = request.args.get('category')
@@ -141,7 +141,7 @@ def edit_inventory_item(item_id):
         user = _request_user()
         admin_aliases = _admin_aliases()
         creator = item.creator or ''
-        if user not in admin_aliases and user != creator:
+        if creator and user not in admin_aliases and user != creator:
             flash('Not allowed to edit item.', 'error')
             return redirect(url_for('main.inventory'))
         try:
