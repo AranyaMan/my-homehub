@@ -189,6 +189,7 @@ class InventoryItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(256), nullable=False)
     quantity = db.Column(db.Float, default=0.0)
+    pack_size = db.Column(db.Float, default=1.0)  # quantity per single unit/packet
     unit = db.Column(db.String(32), default='pcs')  # pcs, kg, l, etc.
     category = db.Column(db.String(64))
     location = db.Column(db.String(128))  # pantry, fridge, freezer, garage, etc.
@@ -198,6 +199,25 @@ class InventoryItem(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     # JSON-encoded list of tags for filtering/grouping
     tags = db.Column(db.Text, default='[]')
+
+    @property
+    def count(self):
+        """Number of units/packets (quantity / pack_size)"""
+        if self.pack_size and self.pack_size > 0:
+            return round(self.quantity / self.pack_size, 2)
+        return 0
+
+    @property
+    def total_amount(self):
+        """Total amount (pack_size * count = quantity)"""
+        return self.quantity
+
+    @property
+    def progress_percentage(self):
+        """Percentage of minimum amount reached"""
+        if self.min_quantity and self.min_quantity > 0:
+            return min(100, round((self.quantity / self.min_quantity) * 100))
+        return 100
 
 class PushSubscription(db.Model):
     id = db.Column(db.Integer, primary_key=True)

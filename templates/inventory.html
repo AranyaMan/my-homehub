@@ -88,11 +88,12 @@
             <table class="w-full">
                 <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-600">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Qty / Unit</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Location</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Min Qty</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item ID</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item Name</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pack Size/Quantity</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Count</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Amount</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Minimum Amount</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tags</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
@@ -101,29 +102,28 @@
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                     {% for item in items %}
                     <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 {% if item.quantity <= item.min_quantity and item.min_quantity > 0 %}bg-red-50 dark:bg-red-900/20{% endif %}" data-item-id="{{ item.id }}">
+                        <td class="px-4 py-3 font-mono text-gray-700 dark:text-gray-300">{{ item.id }}</td>
                         <td class="px-4 py-3">
                             <div class="font-medium text-gray-900 dark:text-white">{{ item.name }}</div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">by {{ item.creator or '—' }}</div>
                         </td>
                         <td class="px-4 py-3">
-                            <span class="font-mono text-gray-900 dark:text-white">{{ item.quantity }} {{ item.unit }}</span>
-                            {% if item.quantity <= item.min_quantity and item.min_quantity > 0 %}
-                            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200">
-                                <i class="fa-solid fa-triangle-exclamation mr-1"></i>Low Stock
-                            </span>
-                            {% endif %}
+                            <span class="font-mono text-gray-900 dark:text-white">{{ item.pack_size }} {{ item.unit }}</span>
                         </td>
-                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ item.category or '—' }}</td>
-                        <td class="px-4 py-3 text-gray-700 dark:text-gray-300">{{ item.location or '—' }}</td>
+                        <td class="px-4 py-3">
+                            <span class="font-mono text-gray-900 dark:text-white">{{ item.count }}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="font-mono text-gray-900 dark:text-white font-semibold">{{ item.total_amount }} {{ item.unit }}</span>
+                        </td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-300 font-mono">{{ item.min_quantity }}</td>
                         <td class="px-4 py-3">
                             {% if item.min_quantity > 0 %}
                             <div class="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                {% set pct = (item.quantity / item.min_quantity * 100) | int if item.min_quantity > 0 else 100 %}
-                                {% set pct = 100 if pct > 100 else pct %}
+                                {% set pct = item.progress_percentage %}
                                 <div class="h-full {% if item.quantity <= item.min_quantity %}bg-red-500{% elif pct < 50 %}bg-yellow-500{% else %}bg-green-500{% endif %} transition-all duration-300" style="width: {{ pct }}%"></div>
                             </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ pct }}% of minimum</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ item.progress_percentage }}% of minimum</div>
                             {% else %}
                             <span class="text-gray-400 dark:text-gray-500">No minimum set</span>
                             {% endif %}
@@ -136,8 +136,10 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">{{ tag }}</span>
                                 {% endfor %}
                             </div>
+                            <div class="hidden item-tags-json">{{ item.tags }}</div>
                             {% else %}
                             <span class="text-gray-400 dark:text-gray-500">—</span>
+                            <div class="hidden item-tags-json">[]</div>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 text-right">
@@ -188,23 +190,23 @@ function adjustQuantity(itemId, delta) {
             // Update the quantity display
             const row = document.querySelector('tr[data-item-id="' + itemId + '"]');
             if (row) {
-                const qtyCell = row.cells[1];
-                const qtyText = qtyCell.querySelector('.font-mono');
-                if (qtyText) {
-                    qtyText.textContent = data.quantity + ' ' + qtyText.textContent.split(' ')[1];
+                const totalAmountCell = row.cells[4];
+                const totalAmountText = totalAmountCell.querySelector('.font-mono');
+                if (totalAmountText) {
+                    totalAmountText.textContent = data.quantity + ' ' + totalAmountText.textContent.split(' ')[1];
                 }
                 // Update low stock badge
-                const minQty = parseFloat(row.cells[4].textContent);
+                const minQty = parseFloat(row.cells[5].textContent);
                 if (data.quantity <= minQty && minQty > 0) {
-                    if (!qtyCell.querySelector('.fa-triangle-exclamation')) {
+                    if (!row.cells[1].querySelector('.fa-triangle-exclamation')) {
                         const badge = document.createElement('span');
                         badge.className = 'ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200';
                         badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-1"></i>Low Stock';
-                        qtyCell.appendChild(badge);
+                        row.cells[1].appendChild(badge);
                     }
                     row.classList.add('bg-red-50', 'dark:bg-red-900/20');
                 } else {
-                    const badge = qtyCell.querySelector('.fa-triangle-exclamation');
+                    const badge = row.cells[1].querySelector('.fa-triangle-exclamation');
                     if (badge) badge.parentElement.remove();
                     row.classList.remove('bg-red-50', 'dark:bg-red-900/20');
                 }

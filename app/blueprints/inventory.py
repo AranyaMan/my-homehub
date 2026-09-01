@@ -71,6 +71,11 @@ def inventory():
             except ValueError:
                 quantity = 0.0
             
+            try:
+                pack_size = float(request.form.get('pack_size') or 1)
+            except ValueError:
+                pack_size = 1.0
+            
             unit = sanitize_text(request.form.get('unit', 'pcs'))
             category = sanitize_text(request.form.get('category', ''))
             location = sanitize_text(request.form.get('location', ''))
@@ -93,8 +98,12 @@ def inventory():
             
             if item_id:
                 item = InventoryItem.query.get_or_404(int(item_id))
+                if not (user in admin_aliases or user == (item.creator or '')):
+                    flash('Not allowed to update item.', 'error')
+                    return redirect(url_for('main.inventory'))
                 item.name = name
                 item.quantity = quantity
+                item.pack_size = pack_size
                 item.unit = unit
                 item.category = category
                 item.location = location
@@ -106,6 +115,7 @@ def inventory():
                 item = InventoryItem(
                     name=name,
                     quantity=quantity,
+                    pack_size=pack_size,
                     unit=unit,
                     category=category,
                     location=location,
@@ -123,6 +133,7 @@ def inventory():
             return _render_inventory_page(
                 form_name=request.form.get('name', ''),
                 form_quantity=request.form.get('quantity', ''),
+                form_pack_size=request.form.get('pack_size', ''),
                 form_unit=request.form.get('unit', ''),
                 form_category=request.form.get('category', ''),
                 form_location=request.form.get('location', ''),
@@ -142,6 +153,7 @@ def edit_inventory_item(item_id):
                 return _render_inventory_page(
                     form_name=request.form.get('name', ''),
                     form_quantity=request.form.get('quantity', ''),
+                    form_pack_size=request.form.get('pack_size', ''),
                     form_unit=request.form.get('unit', ''),
                     form_category=request.form.get('category', ''),
                     form_location=request.form.get('location', ''),
@@ -149,6 +161,10 @@ def edit_inventory_item(item_id):
                     form_tags=request.form.get('tags', ''),
                 )
             quantity = float(request.form.get('quantity') or 0)
+            try:
+                pack_size = float(request.form.get('pack_size') or 1)
+            except ValueError:
+                pack_size = 1.0
             unit = sanitize_text(request.form.get('unit', 'pcs'))
             category = sanitize_text(request.form.get('category', ''))
             location = sanitize_text(request.form.get('location', ''))
@@ -166,6 +182,7 @@ def edit_inventory_item(item_id):
             
             item.name = name
             item.quantity = quantity
+            item.pack_size = pack_size
             item.unit = unit
             item.category = category
             item.location = location
@@ -180,6 +197,7 @@ def edit_inventory_item(item_id):
             return _render_inventory_page(
                 form_name=request.form.get('name', ''),
                 form_quantity=request.form.get('quantity', ''),
+                form_pack_size=request.form.get('pack_size', ''),
                 form_unit=request.form.get('unit', ''),
                 form_category=request.form.get('category', ''),
                 form_location=request.form.get('location', ''),
@@ -196,6 +214,7 @@ def edit_inventory_item(item_id):
     form_state = {
         'form_name': item.name,
         'form_quantity': item.quantity,
+        'form_pack_size': item.pack_size,
         'form_unit': item.unit,
         'form_category': item.category,
         'form_location': item.location,
@@ -267,6 +286,9 @@ def api_get_inventory():
             "id": i.id,
             "name": i.name,
             "quantity": i.quantity,
+            "pack_size": i.pack_size,
+            "count": i.count,
+            "total_amount": i.total_amount,
             "unit": i.unit,
             "category": i.category,
             "location": i.location,
@@ -276,5 +298,6 @@ def api_get_inventory():
             "updated_at": i.updated_at.isoformat() if i.updated_at else None,
             "tags": tg,
             "is_low_stock": i.quantity <= i.min_quantity,
+            "progress_percentage": i.progress_percentage,
         }
     return jsonify([to_dict(i) for i in items])
