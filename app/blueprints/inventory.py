@@ -1,18 +1,18 @@
-from flask import render_template, request, redirect, url_for, current_app, jsonify, flash
+from flask import render_template, request, redirect, url_for, current_app, jsonify, flash, session
 from ..models import db, InventoryItem
 from ..blueprints import main_bp
 from ..security import sanitize_text
 import json
 
-
 def _admin_aliases() -> set[str]:
     admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
     return {admin_name, 'Administrator', 'admin'}
 
-
 def _request_user() -> str:
+    user = session.get("username")
+    if user:
+        return sanitize_text(user)
     return sanitize_text(request.form.get('user', ''))
-
 
 def _render_inventory_page(**form_state):
     filter_category = request.args.get('category')
@@ -49,7 +49,6 @@ def _render_inventory_page(**form_state):
         config=config,
     )
 
-
 @main_bp.route('/inventory', methods=['GET', 'POST'])
 def inventory():
     if request.method == 'POST':
@@ -68,7 +67,7 @@ def inventory():
                 quantity = float(request.form.get('quantity') or 0)
             except ValueError:
                 quantity = 0.0
-                
+            
             unit = sanitize_text(request.form.get('unit', 'pcs'))
             category = sanitize_text(request.form.get('category', ''))
             location = sanitize_text(request.form.get('location', ''))
@@ -77,7 +76,7 @@ def inventory():
                 min_quantity = float(request.form.get('min_quantity') or 0)
             except ValueError:
                 min_quantity = 0.0
-                
+            
             raw_tags = request.form.get('tags', '').strip()
             tags_list = []
             if raw_tags:
@@ -129,10 +128,8 @@ def inventory():
                 form_location=request.form.get('location', ''),
                 form_min_quantity=request.form.get('min_quantity', ''),
                 form_tags=request.form.get('tags', ''),
-                form_item_id=request.form.get('item_id', ''),
             )
     return _render_inventory_page()
-
 
 @main_bp.route('/inventory/edit/<int:item_id>', methods=['GET', 'POST'])
 def edit_inventory_item(item_id):
@@ -172,7 +169,7 @@ def edit_inventory_item(item_id):
                 except Exception:
                     tags_list = [t.strip() for t in raw_tags.split(',') if t.strip()]
             tags_list = [sanitize_text(t) for t in tags_list if isinstance(t, str) and t.strip()]
-
+            
             item.name = name
             item.quantity = quantity
             item.unit = unit
@@ -180,7 +177,7 @@ def edit_inventory_item(item_id):
             item.location = location
             item.min_quantity = min_quantity
             item.tags = json.dumps(tags_list)
-
+            
             db.session.commit()
             flash('Item updated.', 'success')
         except Exception as e:
@@ -196,7 +193,7 @@ def edit_inventory_item(item_id):
                 form_tags=request.form.get('tags', ''),
             )
         return redirect(url_for('main.inventory'))
-
+    
     # GET request
     try:
         item_tags = json.loads(item.tags or '[]')
@@ -214,7 +211,6 @@ def edit_inventory_item(item_id):
     }
     return _render_inventory_page(**form_state)
 
-
 @main_bp.route('/inventory/delete/<int:item_id>', methods=['POST'])
 def delete_inventory_item(item_id):
     item = InventoryItem.query.get_or_404(item_id)
@@ -227,7 +223,6 @@ def delete_inventory_item(item_id):
     else:
         flash('Not allowed to delete item.', 'error')
     return redirect(url_for('main.inventory'))
-
 
 @main_bp.route('/inventory/adjust/<int:item_id>', methods=['POST'])
 def adjust_inventory_quantity(item_id):
@@ -250,7 +245,6 @@ def adjust_inventory_quantity(item_id):
         return jsonify({"ok": True, "id": item.id, "quantity": item.quantity})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 400
-
 
 @main_bp.route('/api/inventory', methods=['GET'])
 def api_get_inventory():
@@ -290,3 +284,9 @@ def api_get_inventory():
             "is_low_stock": i.quantity <= i.min_quantity,
         }
     return jsonify([to_dict(i) for i in items])
+</parameter>
+<parameter=filePath>
+C:/Users/Arany/.antigravity-ide/Homehub/homehub/app/blueprints/inventory.py
+</parameter>
+</function>
+</tool_call>
