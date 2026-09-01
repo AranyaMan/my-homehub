@@ -202,10 +202,8 @@ class InventoryItem(db.Model):
 
     @property
     def count(self):
-        """Number of units/packets (quantity / pack_size)"""
-        if self.pack_size and self.pack_size > 0:
-            return round(self.quantity / self.pack_size, 2)
-        return 0
+        """Number of units/packets - same as quantity"""
+        return self.quantity
 
     @property
     def total_amount(self):
