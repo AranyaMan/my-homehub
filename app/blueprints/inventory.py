@@ -12,6 +12,9 @@ def _request_user() -> str:
     user = session.get("username")
     if user:
         return sanitize_text(user)
+    user = session.get("username")
+    if user:
+        return sanitize_text(user)
     return sanitize_text(request.form.get('user', ''))
 
 def _render_inventory_page(**form_state):
