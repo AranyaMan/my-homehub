@@ -22,7 +22,39 @@ def _render_inventory_page(**form_state):
     filter_location = request.args.get('location')
     filter_low_stock = request.args.get('low_stock') in ('1', 'on', 'true', 'yes')
     
-    query = InventoryItem.query.order_by(InventoryItem.category.asc(), InventoryItem.name.asc())
+    # Sorting parameters
+    sort_by = request.args.get('sort_by', 'name')
+    sort_dir = request.args.get('sort_dir', 'asc')
+    
+    # Validate sort parameters
+    valid_sort_fields = {'id', 'name', 'pack_size', 'quantity', 'min_quantity', 'tags'}
+    if sort_by not in valid_sort_fields:
+        sort_by = 'name'
+    if sort_dir not in ('asc', 'desc'):
+        sort_dir = 'asc'
+    
+    query = InventoryItem.query
+    
+    # Apply sorting
+    if sort_by == 'id':
+        query = query.order_by(InventoryItem.id.asc() if sort_dir == 'asc' else InventoryItem.id.desc())
+    elif sort_by == 'name':
+        query = query.order_by(InventoryItem.name.asc() if sort_dir == 'asc' else InventoryItem.name.desc())
+    elif sort_by == 'tags':
+        # For JSON tags field, sort by the raw JSON string
+        # This provides a consistent alphanumeric sort across all JSON content
+        if sort_dir == 'asc':
+            query = query.order_by(InventoryItem.tags.asc())
+        else:
+            query = query.order_by(InventoryItem.tags.desc())
+    elif sort_by == 'pack_size':
+        query = query.order_by(InventoryItem.pack_size.asc() if sort_dir == 'asc' else InventoryItem.pack_size.desc())
+    elif sort_by == 'quantity':
+        query = query.order_by(InventoryItem.quantity.asc() if sort_dir == 'asc' else InventoryItem.quantity.desc())
+    elif sort_by == 'min_quantity':
+        query = query.order_by(InventoryItem.min_quantity.asc() if sort_dir == 'asc' else InventoryItem.min_quantity.desc())
+    else:
+        query = query.order_by(InventoryItem.name.asc())
     
     if filter_category:
         query = query.filter(InventoryItem.category == filter_category)
@@ -48,6 +80,8 @@ def _render_inventory_page(**form_state):
         filter_category=filter_category,
         filter_location=filter_location,
         filter_low_stock=filter_low_stock,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
         **form_state,
         config=config,
     )
