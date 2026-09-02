@@ -144,6 +144,7 @@ def inventory():
 
 @main_bp.route('/inventory/edit/<int:item_id>', methods=['GET', 'POST'])
 def edit_inventory_item(item_id):
+    is_copy = request.args.get('copy') == '1'
     item = InventoryItem.query.get_or_404(item_id)
     if request.method == 'POST':
         try:
@@ -180,17 +181,34 @@ def edit_inventory_item(item_id):
                     tags_list = [t.strip() for t in raw_tags.split(',') if t.strip()]
             tags_list = [sanitize_text(t) for t in tags_list if isinstance(t, str) and t.strip()]
             
-            item.name = name
-            item.quantity = quantity
-            item.pack_size = pack_size
-            item.unit = unit
-            item.category = category
-            item.location = location
-            item.min_quantity = min_quantity
-            item.tags = json.dumps(tags_list)
-            
-            db.session.commit()
-            flash('Item updated.', 'success')
+            if is_copy:
+                # Create new item (copy)
+                new_item = InventoryItem(
+                    name=name,
+                    quantity=quantity,
+                    pack_size=pack_size,
+                    unit=unit,
+                    category=category,
+                    location=location,
+                    min_quantity=min_quantity,
+                    creator=sanitize_text(request.form.get('creator', '')),
+                    tags=json.dumps(tags_list),
+                )
+                db.session.add(new_item)
+                db.session.commit()
+                flash('Item copied.', 'success')
+            else:
+                # Update existing item
+                item.name = name
+                item.quantity = quantity
+                item.pack_size = pack_size
+                item.unit = unit
+                item.category = category
+                item.location = location
+                item.min_quantity = min_quantity
+                item.tags = json.dumps(tags_list)
+                db.session.commit()
+                flash('Item updated.', 'success')
         except Exception as e:
             current_app.logger.exception('Error updating inventory item')
             flash(f'Error updating item: {str(e)}', 'error')
@@ -220,7 +238,7 @@ def edit_inventory_item(item_id):
         'form_location': item.location,
         'form_min_quantity': item.min_quantity,
         'form_tags': json.dumps(item_tags),
-        'form_item_id': item.id,
+        'form_item_id': item.id if not is_copy else '',
     }
     return _render_inventory_page(**form_state)
 
