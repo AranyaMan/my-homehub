@@ -343,10 +343,23 @@ function expandForm() {
     
     if (!addFormWrapper || !toggleBtn || !chevron) return;
     
-    addFormWrapper.style.maxHeight = addFormWrapper.scrollHeight + 'px';
+    // Temporarily remove max-height to measure actual content height
+    addFormWrapper.style.maxHeight = 'none';
+    addFormWrapper.style.overflow = 'visible';
+    const contentHeight = addFormWrapper.scrollHeight;
+    
+    // Now animate from 0 to content height
+    addFormWrapper.style.maxHeight = '0px';
+    addFormWrapper.style.overflow = 'hidden';
+    
+    // Force reflow
+    addFormWrapper.offsetHeight;
+    
+    addFormWrapper.style.maxHeight = contentHeight + 'px';
     addFormWrapper.style.overflow = 'hidden';
     chevron.style.transform = 'rotate(180deg)';
     toggleBtn.querySelector('span').textContent = 'Hide Form';
+    
     setTimeout(() => {
         if (addFormWrapper.style.maxHeight !== '0px') {
             addFormWrapper.style.maxHeight = 'none';
@@ -364,7 +377,10 @@ function collapseForm() {
     
     addFormWrapper.style.maxHeight = addFormWrapper.scrollHeight + 'px';
     addFormWrapper.style.overflow = 'hidden';
+    
+    // Force reflow
     addFormWrapper.offsetHeight;
+    
     addFormWrapper.style.maxHeight = '0px';
     chevron.style.transform = 'rotate(0deg)';
     toggleBtn.querySelector('span').textContent = 'Add New Item';
