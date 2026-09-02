@@ -303,6 +303,73 @@ function adjustQuantity(itemId, delta) {
     }).catch(console.error);
 }
 
+// Table sorting functionality
+function sortTable(column) {
+    const url = new URL(window.location.href);
+    const currentSort = url.searchParams.get('sort_by');
+    const currentDir = url.searchParams.get('sort_dir') || 'asc';
+    
+    let newDir = 'asc';
+    if (currentSort === column && currentDir === 'asc') {
+        newDir = 'desc';
+    }
+    
+    url.searchParams.set('sort_by', column);
+    url.searchParams.set('sort_dir', newDir);
+    window.location.href = url.toString();
+}
+
+// Toggle add form
+function toggleAddForm() {
+    const addFormWrapper = document.getElementById('addFormWrapper');
+    const toggleBtn = document.getElementById('toggleAddForm');
+    const chevron = document.getElementById('addFormChevron');
+    
+    if (!addFormWrapper || !toggleBtn) return;
+    
+    const isExpanded = addFormWrapper.style.maxHeight !== '0px' && addFormWrapper.style.maxHeight !== '';
+    
+    if (isExpanded) {
+        collapseForm();
+    } else {
+        expandForm();
+    }
+}
+
+function expandForm() {
+    const addFormWrapper = document.getElementById('addFormWrapper');
+    const toggleBtn = document.getElementById('toggleAddForm');
+    const chevron = document.getElementById('addFormChevron');
+    
+    if (!addFormWrapper || !toggleBtn || !chevron) return;
+    
+    addFormWrapper.style.maxHeight = addFormWrapper.scrollHeight + 'px';
+    addFormWrapper.style.overflow = 'hidden';
+    chevron.style.transform = 'rotate(180deg)';
+    toggleBtn.querySelector('span').textContent = 'Hide Form';
+    setTimeout(() => {
+        if (addFormWrapper.style.maxHeight !== '0px') {
+            addFormWrapper.style.maxHeight = 'none';
+            addFormWrapper.style.overflow = 'visible';
+        }
+    }, 300);
+}
+
+function collapseForm() {
+    const addFormWrapper = document.getElementById('addFormWrapper');
+    const toggleBtn = document.getElementById('toggleAddForm');
+    const chevron = document.getElementById('addFormChevron');
+    
+    if (!addFormWrapper || !toggleBtn || !chevron) return;
+    
+    addFormWrapper.style.maxHeight = addFormWrapper.scrollHeight + 'px';
+    addFormWrapper.style.overflow = 'hidden';
+    addFormWrapper.offsetHeight;
+    addFormWrapper.style.maxHeight = '0px';
+    chevron.style.transform = 'rotate(0deg)';
+    toggleBtn.querySelector('span').textContent = 'Add New Item';
+}
+
 // Initialize user context for forms
 document.addEventListener('DOMContentLoaded', function() {
     const currentUser = localStorage.getItem('username') || '';
@@ -335,47 +402,6 @@ document.addEventListener('DOMContentLoaded', function() {
             addFormWrapper.style.maxHeight = 'none';
             addFormWrapper.style.overflow = 'visible';
         }
-    }
-    
-    function expandForm() {
-        addFormWrapper.style.maxHeight = addFormWrapper.scrollHeight + 'px';
-        addFormWrapper.style.overflow = 'hidden';
-        chevron.style.transform = 'rotate(180deg)';
-        toggleBtn.querySelector('span').textContent = 'Hide Form';
-        // After animation completes, set to none to allow dynamic content
-        setTimeout(() => {
-            if (addFormWrapper.style.maxHeight !== '0px') {
-                addFormWrapper.style.maxHeight = 'none';
-                addFormWrapper.style.overflow = 'visible';
-            }
-        }, 300);
-    }
-    
-    function collapseForm() {
-        addFormWrapper.style.maxHeight = addFormWrapper.scrollHeight + 'px';
-        addFormWrapper.style.overflow = 'hidden';
-        // Force reflow
-        addFormWrapper.offsetHeight;
-        addFormWrapper.style.maxHeight = '0px';
-        chevron.style.transform = 'rotate(0deg)';
-        toggleBtn.querySelector('span').textContent = 'Add New Item';
-    }
-});
-    
-    // Table sorting functionality
-    function sortTable(column) {
-        const url = new URL(window.location.href);
-        const currentSort = url.searchParams.get('sort_by');
-        const currentDir = url.searchParams.get('sort_dir') || 'asc';
-        
-        let newDir = 'asc';
-        if (currentSort === column && currentDir === 'asc') {
-            newDir = 'desc';
-        }
-        
-        url.searchParams.set('sort_by', column);
-        url.searchParams.set('sort_dir', newDir);
-        window.location.href = url.toString();
     }
 });
 </script>
