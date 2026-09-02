@@ -90,7 +90,7 @@
                     <tr>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item ID</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item Name</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pack Size/Quantity</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Pack size</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Count</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Amount</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Minimum Amount</th>
@@ -108,10 +108,10 @@
                             <div class="text-xs text-gray-500 dark:text-gray-400">by {{ item.creator or '—' }}</div>
                         </td>
                         <td class="px-4 py-3">
-                            <span class="font-mono text-gray-900 dark:text-white">{{ item.pack_size }} {{ item.unit }}</span>
+                            <span class="font-mono text-gray-900 dark:text-white">{{ item.pack_size }}</span>
                         </td>
                         <td class="px-4 py-3">
-                            <span class="font-mono text-gray-900 dark:text-white">{{ item.count }}</span>
+                            <span class="font-mono text-gray-900 dark:text-white">{{ item.quantity }}</span>
                         </td>
                         <td class="px-4 py-3">
                             <span class="font-mono text-gray-900 dark:text-white font-semibold">{{ item.total_amount }} {{ item.unit }}</span>

@@ -202,13 +202,13 @@ class InventoryItem(db.Model):
 
     @property
     def count(self):
-        """Number of units/packets - same as quantity"""
+        """Quantity (same as quantity field)"""
         return self.quantity
 
     @property
     def total_amount(self):
-        """Total amount (pack_size * count = quantity)"""
-        return self.quantity
+        """Total amount (pack_size * quantity)"""
+        return self.pack_size * self.quantity
 
     @property
     def progress_percentage(self):
