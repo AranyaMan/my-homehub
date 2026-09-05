@@ -74,7 +74,7 @@
             </div>
         </div>
         <!-- Add button (shown when collapsed) -->
-        <button type="button" id="toggleAddForm" class="w-full px-6 py-4 bg-blue-50 dark:bg-blue-900/20 border-t border-gray-200 dark:border-gray-700 rounded-b-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors flex items-center justify-center gap-2" onclick="toggleAddForm()">
+        <button type="button" id="toggleAddForm" class="w-full px-6 py-4 bg-blue-50 dark:bg-blue-900/20 border-t border-gray-200 dark:border-gray-700 rounded-b-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors flex items-center justify-center gap-2">
             <i class="fa-solid fa-plus text-blue-600 dark:text-blue-400 text-xl"></i>
             <span class="font-medium text-blue-700 dark:text-blue-300">Add New Item</span>
             <i class="fa-solid fa-chevron-down text-blue-600 dark:text-blue-400 transition-transform duration-300" id="addFormChevron"></i>
@@ -327,7 +327,9 @@ function toggleAddForm() {
     
     if (!addFormWrapper || !toggleBtn) return;
     
-    const isExpanded = addFormWrapper.style.maxHeight !== '0px' && addFormWrapper.style.maxHeight !== '';
+    // Handle both '0' and '0px' for initial collapsed state
+    const maxHeight = addFormWrapper.style.maxHeight;
+    const isExpanded = maxHeight !== '0' && maxHeight !== '0px' && maxHeight !== '';
     
     if (isExpanded) {
         collapseForm();
@@ -404,7 +406,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!isEditMode) {
             // Add click handler for toggle button
             toggleBtn.addEventListener('click', function() {
-                const isExpanded = addFormWrapper.style.maxHeight !== '0px' && addFormWrapper.style.maxHeight !== '';
+                const maxHeight = addFormWrapper.style.maxHeight;
+                const isExpanded = maxHeight !== '0' && maxHeight !== '0px' && maxHeight !== '';
                 
                 if (isExpanded) {
                     collapseForm();
