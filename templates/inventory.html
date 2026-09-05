@@ -124,6 +124,18 @@
                                 </span>
                             </div>
                         </th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none" onclick="sortTable('location')">
+                            <div class="flex items-center gap-1">
+                                Location
+                                <span id="sort-icon-location" class="text-gray-400">
+                                    {% if sort_by == 'location' %}
+                                        {% if sort_dir == 'asc' %}▲{% else %}▼{% endif %}
+                                    {% else %}
+                                        <span class="opacity-50">▲▼</span>
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none" onclick="sortTable('quantity')">
                             <div class="flex items-center gap-1">
                                 Count
@@ -182,6 +194,9 @@
                         </td>
                         <td class="px-4 py-3">
                             <span class="font-mono text-gray-900 dark:text-white">{{ item.pack_size }}</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="text-gray-700 dark:text-gray-300">{{ item.location or '—' }}</span>
                         </td>
                         <td class="px-4 py-3">
                             <span class="font-mono text-gray-900 dark:text-white">{{ item.quantity }}</span>

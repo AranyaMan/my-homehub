@@ -27,7 +27,7 @@ def _render_inventory_page(**form_state):
     sort_dir = request.args.get('sort_dir', 'asc')
     
     # Validate sort parameters
-    valid_sort_fields = {'id', 'name', 'pack_size', 'quantity', 'min_quantity', 'tags'}
+    valid_sort_fields = {'id', 'name', 'pack_size', 'location', 'quantity', 'min_quantity', 'tags'}
     if sort_by not in valid_sort_fields:
         sort_by = 'name'
     if sort_dir not in ('asc', 'desc'):
@@ -49,6 +49,8 @@ def _render_inventory_page(**form_state):
             query = query.order_by(InventoryItem.tags.desc())
     elif sort_by == 'pack_size':
         query = query.order_by(InventoryItem.pack_size.asc() if sort_dir == 'asc' else InventoryItem.pack_size.desc())
+    elif sort_by == 'location':
+        query = query.order_by(InventoryItem.location.asc() if sort_dir == 'asc' else InventoryItem.location.desc())
     elif sort_by == 'quantity':
         query = query.order_by(InventoryItem.quantity.asc() if sort_dir == 'asc' else InventoryItem.quantity.desc())
     elif sort_by == 'min_quantity':
