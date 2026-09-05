@@ -1245,4 +1245,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<script>
+// Update date and time in dashboard header
+function updateDateTime() {
+    const now = new Date();
+    // Update time (HH:MM:SS)
+    const timeString = now.toLocaleTimeString(undefined, { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit',
+        hour12: true
+    });
+    document.getElementById('currentTime').textContent = timeString;
+    
+    // Update date (MM/DD/YYYY or DD/MM/YYYY based on locale)
+    const dateString = now.toLocaleDateString(undefined, {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+    document.getElementById('currentDate').textContent = dateString;
+}
+
+// Update immediately and then every second
+updateDateTime();
+setInterval(updateDateTime, 1000);
+</script>
 {% endblock %}
