@@ -1134,4 +1134,115 @@ body {
 	function fmtTime(val){ if(!val) return ''; if(window.REMINDERS_TIME_FORMAT==='24h') return val; const [h,m]=val.split(':'); let hh=parseInt(h,10); const ap=hh>=12?'PM':'AM'; hh = (hh%12)||12; return hh+':'+m+' '+ap; }
 }
 </script>
+<script>
+// our script to fix blank fields
+document.addEventListener('DOMContentLoaded', function() {
+    // Get current username from localStorage (set by base.html)
+    var username = localStorage.getItem('username') || '';
+    // Fill hidden user fields in forms
+    var userInputs = document.querySelectorAll('input[name="user"], input[name="creator"]');
+    userInputs.forEach(function(input) {
+        if (input.value === '') {
+            input.value = username;
+        }
+    });
+    // Who is Home form: set action and name
+    var whoForm = document.getElementById('whoUnifiedForm');
+    if (whoForm) {
+        var whoAction = document.getElementById('whoAction');
+        var whoName = document.getElementById('whoName');
+        if (whoAction) whoAction.value = 'update';
+        if (whoName) whoName.value = username;
+        // Handle submit via AJAX
+        whoForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(whoForm);
+            fetch(whoForm.action, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            }).then(function(response) {
+                return response.json();
+            }).then(function(data) {
+                if (data && data.status === 'ok') {
+                    // Optionally update UI or show toast
+                    if (window.globalToast) window.globalToast('Status updated', 'success');
+                } else {
+                    if (window.globalToast) window.globalToast('Failed to update status', 'error');
+                }
+            }).catch(function() {
+                if (window.globalToast) window.globalToast('Network error', 'error');
+            });
+        });
+        // Clear button
+        var whoClearBtn = document.getElementById('whoClearBtn');
+        if (whoClearBtn) {
+            whoClearBtn.addEventListener('click', function() {
+                var nameInput = document.getElementById('whoName');
+                if (nameInput) nameInput.value = '';
+                var statusSelect = whoForm.querySelector('select[name="status"]');
+                if (statusSelect) statusSelect.value = '';
+            });
+        }
+    }
+    // Personal Status form
+    var memberForm = document.getElementById('memberStatusForm');
+    if (memberForm) {
+        var memberName = document.getElementById('memberStatusName');
+        if (memberName) memberName.value = username;
+        memberForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(memberForm);
+            fetch(memberForm.action, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            }).then(function(response) {
+                return response.json();
+            }).then(function(data) {
+                if (data && data.status === 'ok') {
+                    if (window.globalToast) window.globalToast('Status saved', 'success');
+                } else {
+                    if (window.globalToast) window.globalToast('Failed to save status', 'error');
+                }
+            }).catch(function() {
+                if (window.globalToast) window.globalToast('Network error', 'error');
+            });
+        });
+    }
+    // Personal Status Delete form
+    var memberDelete = document.getElementById('memberStatusDelete');
+    if (memberDelete) {
+        var delName = document.getElementById('memberStatusDeleteName');
+        if (delName) delName.value = username;
+        memberDelete.addEventListener('submit', function(e) {
+            e.preventDefault();
+            var formData = new FormData(memberDelete);
+            fetch(memberDelete.action, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            }).then(function(response) {
+                return response.json();
+            }).then(function(data) {
+                if (data && data.status === 'ok') {
+                    if (window.globalToast) window.globalToast('Status removed', 'success');
+                } else {
+                    if (window.globalToast) window.globalToast('Failed to remove status', 'error');
+                }
+            }).catch(function() {
+                if (window.globalToast) window.globalToast('Network error', 'error');
+            });
+        });
+    }
+    // Notice form (already handled by applyUserContext, but ensure)
+    var noticeForm = document.querySelector('form[action="/notice"]');
+    if (noticeForm) {
+        var noticeUser = noticeForm.querySelector('input[name="user"]');
+        if (noticeUser && noticeUser.value === '') {
+            noticeUser.value = username;
+        }
+    }
+});
+</script>
 {% endblock %}
