@@ -17,243 +17,578 @@ window.REMINDERS_CAL_START = (function(){
 <script id="weatherConfigData" type="application/json">{{ config.weather|tojson }}</script>
 <script src="{{ url_for('static', filename='js/weather.js') }}"></script>
 {% endif %}
+<script id="familyMembersData" type="application/json">{{ config.family_members|tojson }}</script>
 {% endblock %}
 {% block content %}
-<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-	<div class="lg:col-span-2 space-y-6">
-		<script id="familyMembersData" type="application/json">{{ config.family_members|tojson }}</script>
-		<div class="card p-6">
-			<div class="flex flex-col md:flex-row justify-between md:items-center gap-3">
-				<div class="flex-1">
-					<h1 class="text-2xl md:text-3xl font-bold mb-2"><i class="fa-solid fa-house text-blue-600 mr-2"></i>Welcome to {{ config.instance_name }}!</h1>
-					<p class="text-sm md:text-base text-gray-600">Pick a tool from the left to get started.</p>
-				</div>
-				<div class="flex flex-col items-start text-left gap-0.5 md:flex-col md:items-end md:text-right md:gap-1 flex-shrink-0">
-					<div class="text-lg md:text-2xl font-semibold text-gray-800 dark:text-gray-200" id="currentTime">--:--:--</div>
-					<div class="text-xs md:text-sm text-gray-500" id="currentDate"></div>
-				</div>
-			</div>
-		</div>
+<style>
+:root {
+  --bg-color: #F8F9FA;
+  --card-bg: #FFFFFF;
+  --card-shadow: 0 4px 20px rgba(0,0,0,0.05);
+  --border-radius: 20px;
+  --primary-color: #dc2626; /* red/pink for active states */
+  --text-color: #111827;
+  --muted-text: #6b7280;
+  --font-sans: 'Inter', sans-serif;
+}
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: var(--font-sans);
+}
+.main-content {
+  padding: 0 !important;
+}
+.dashboard-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: var(--card-bg);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+  border-radius: var(--border-radius) var(--border-radius) 0 0;
+  margin: 1rem;
+}
+.dashboard-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.dashboard-left .date {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted-text);
+}
+.dashboard-left .time {
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.dashboard-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.weather-widget {
+  /* weather.js will fill this */
+}
+.dashboard-main {
+  flex: 1;
+  display: grid;
+  gap: 1.5rem;
+  padding: 2rem;
+  overflow-y: auto;
+}
+@media (min-width: 768px) {
+  .dashboard-main {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.card {
+  background: var(--card-bg);
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #eee;
+  background: #fafafa;
+}
+.card-header i {
+  font-size: 1.5rem;
+  width: 2.25rem;
+  text-align: center;
+}
+.card-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+.card-body {
+  padding: 1.5rem;
+  flex: 1;
+}
+.card-body:last-child {
+  padding-bottom: 1.5rem;
+}
+/* Welcome card specific */
+.card.welcome .card-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+}
+.card.welcome .card-body h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+/* Notice board */
+.notice-content {
+  background: #fffbeb;
+  border: 1px solid #fbd38d;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.notice-footer {
+  font-size: 0.85rem;
+  color: var(--muted-text);
+  text-align: right;
+}
+.notice-form textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  resize: vertical;
+}
+.notice-form .btn-primary {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+/* Who is Home */
+.who-status-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.who-status-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+.who-name {
+  font-weight: 600;
+}
+.who-pill {
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  border-width: 1px;
+  border-style: solid;
+}
+.who-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.who-form select,
+.who-form input[type="text"] {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+.who-update-btn,
+.who-clear-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.who-update-btn {
+  background: var(--primary-color);
+  color: #fff;
+}
+.who-update-btn:hover {
+  opacity: 0.9;
+}
+.who-clear-btn {
+  background: #e5e7eb;
+  color: #111827;
+}
+.who-clear-btn:hover {
+  background: #d1d5db;
+}
+/* Personal Status */
+.member-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.member-status-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #f3f4f6;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+.member-status-chip .member-status-name {
+  font-size: 0.75rem;
+  color: var(--muted-text);
+}
+.member-status-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.member-status-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+.member-status-save-btn,
+.member-status-delete-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.member-status-save-btn {
+  background: var(--primary-color);
+  color: #fff;
+}
+.member-status-save-btn:hover {
+  opacity: 0.9;
+}
+.member-status-delete-btn {
+  background: #dc2626;
+  color: #fff;
+}
+.member-status-delete-btn:hover {
+  background: #b91c1c;
+}
+/* Chores */
+.chores-link {
+  margin-left: auto;
+  font-size: 0.9rem;
+  color: var(--primary-color);
+  text-decoration: none;
+}
+.chores-link:hover {
+  text-decoration: underline;
+}
+.chores-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.chore-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid #eee;
+}
+.chore-item:last-child {
+  border-bottom: none;
+}
+.chore-info {
+  flex: 1;
+}
+.chore-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.chore-meta {
+  font-size: 0.85rem;
+  color: var(--muted-text);
+}
+.chore-recurring {
+  background: #ede9fe;
+  color: #5b21b6;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.empty {
+  text-align: center;
+  color: var(--muted-text);
+  font-style: italic;
+  padding: 2rem;
+}
+/* Reminders - we will keep the existing styles but adjust container */
+#remindersCard {
+  /* keep existing styling from original */
+}
+</style>
+<div class="dashboard-container">
+  <!-- Top status bar -->
+  <div class="dashboard-header">
+    <div class="dashboard-left">
+      <div id="currentDate" class="date">--:--:--</div>
+      <div id="currentTime" class="time">--:--:--</div>
+    </div>
+    <div class="dashboard-right">
+      {% if config.weather and config.weather.enabled %}
+        <div id="weatherWidget" class="weather-widget"></div>
+      {% endif %}
+    </div>
+  </div>
 
-		{% if config.weather and config.weather.enabled %}
-		<div class="card p-6" id="weatherWidget">
-			<div class="flex items-center justify-between mb-3">
-				<h2 class="text-xl font-bold flex items-center">
-					<i class="fa-solid fa-cloud-sun text-blue-500 mr-2"></i>
-					Weather
-				</h2>
-				<span id="weatherLocation" class="text-sm text-gray-500"></span>
-			</div>
-			<div id="weatherContent">
-				<div class="text-center text-gray-500 py-4" role="status" aria-live="polite">
-					<i class="fa-solid fa-spinner fa-spin text-2xl" aria-hidden="true"></i>
-					<p class="mt-2">Loading weather data...</p>
-				</div>
-			</div>
-		</div>
-		{% endif %}
+  <!-- Main content -->
+  <div class="dashboard-main">
+    <!-- Welcome card -->
+    <div class="card welcome">
+      <div class="card-header">
+        <i class="fa-solid fa-house"></i>
+        <h2>Welcome to {{ config.instance_name }}!</h2>
+      </div>
+      <div class="card-body">
+        <!-- optional short message -->
+        <p class="text-muted">Your smart home dashboard</p>
+      </div>
+    </div>
 
-			<div class="card p-6">
-				<h2 class="text-xl font-bold mb-3"><i class="fa-solid fa-bullhorn text-amber-600 mr-2"></i>Family Notice Board</h2>
-			{% if notice and notice.content %}
-				<div class="prose max-w-none whitespace-pre-wrap bg-yellow-50 border border-yellow-200 rounded p-4">{{ notice.content }}</div>
-				<div class="text-xs text-gray-500 mt-2">Last updated by {{ notice.updated_by }} at {{ notice.updated_at.strftime('%Y-%m-%d %H:%M') }}</div>
-			{% else %}
-				<div class="text-gray-500">No notices yet. Admin can post one below.</div>
-			{% endif %}
-			<form method="POST" action="/notice" class="mt-4 space-y-2" id="noticeForm">
-				<textarea name="content" rows="4" class="w-full p-2 border rounded" placeholder="Leave blank and submit to clear the notice"></textarea>
-				<input type="hidden" name="user" value="">
-				<button type="submit" class="btn btn-primary">Update Notice (Admin)</button>
-			</form>
-		</div> <!-- /card -->
+    <!-- Family Notice Board -->
+    <div class="card">
+      <div class="card-header">
+        <i class="fa-solid fa-bullhorn"></i>
+        <h2>Family Notice Board</h2>
+      </div>
+      <div class="card-body">
+        {% if notice and notice.content %}
+          <div class="notice-content">{{ notice.content }}</div>
+          <div class="notice-footer">Last updated by {{ notice.updated_by }} at {{ notice.updated_at.strftime('%Y-%m-%d %H:%M') }}</div>
+        {% else %}
+          <p class="empty">No notices yet. Admin can post one below.</p>
+        {% endif %}
+        <form method="POST" action="/notice" class="notice-form mt-3">
+          <textarea name="content" rows="3" placeholder="Leave blank and submit to clear the notice"></textarea>
+          <input type="hidden" name="user" value="">
+          <button type="submit" class="btn btn-primary">Update Notice (Admin)</button>
+        </form>
+      </div>
+    </div>
 
-		<!-- Two-column (Who is Home + Personal Status) under Notice Board -->
-		{% set show_who = config.feature_toggles.who_is_home %}
-		{% set show_status = (config.feature_toggles.personal_status if config.feature_toggles.personal_status is defined else True) %}
-		{% set two_col = show_who and show_status %}
-		<div class="grid {{ 'md:grid-cols-2' if two_col else 'md:grid-cols-1' }} gap-6">
-			<!-- Who is Home (compact) -->
-			{% if show_who %}
-			<div class="card p-4" id="whoHomeCard">
-				<h2 class="text-lg font-semibold mb-3 flex items-center gap-2"><i class="fa-solid fa-house-user text-green-600"></i> Who is Home?</h2>
-				<div id="whoStatusList" class="flex flex-wrap gap-2 mb-3 text-xs">
-					{% for member in config.family_members %}
-						{% set st = who_statuses.get(member) %}
-						<span class="px-2 py-1 rounded border bg-white flex items-center gap-1" data-member="{{ member }}">
-							<span class="font-medium">{{ member }}</span>
-							<span class="status-pill px-1.5 py-0.5 rounded text-[10px] leading-none
-							{% if st == 'Home' %} bg-green-100 text-green-700 border border-green-300
-							{% elif st == 'Away' %} bg-gray-100 text-gray-600 border border-gray-300
-							{% elif st == 'Out' %} bg-amber-100 text-amber-700 border border-amber-300
-							{% elif st == 'Traveling' %} bg-indigo-100 text-indigo-700 border border-indigo-300
-							{% elif st %} bg-blue-100 text-blue-700 border border-blue-300
-							{% else %} bg-gray-100 text-gray-500 border border-gray-200
-							{% endif %}">{{ st or '—' }}</span>
-						</span>
-					{% endfor %}
-				</div>
-				<form id="whoUnifiedForm" method="POST" action="/whoishome" onsubmit="return false" class="flex flex-wrap items-center gap-2 text-xs" data-ajax="1">
-					<input type="hidden" name="action" id="whoAction" value="update">
-					<input type="hidden" name="name" id="whoName" value="">
-					<select name="status" class="border rounded p-1 text-xs">
-						<option>Home</option>
-						<option>Away</option>
-						<option>Out</option>
-						<option>Traveling</option>
-					</select>
-					<button id="whoUpdateBtn" type="submit" class="px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">Update</button>
-					<button id="whoClearBtn" type="button" class="px-2 py-1 rounded border bg-white hover:bg-gray-50" title="Clear my status">Clear</button>
-				</form>
+    <!-- Who is Home and Personal Status (two cards side by side on large screens) -->
+    {% if show_who %}
+    <div class="card">
+      <div class="card-header">
+        <i class="fa-solid fa-house-user"></i>
+        <h2>Who is Home?</h2>
+      </div>
+      <div class="card-body">
+        <div id="whoStatusList" class="who-status-list">
+          {% for member in config.family_members %}
+            {% set st = who_statuses.get(member) %}
+            <span class="who-status-item" data-member="{{ member }}">
+              <span class="who-name">{{ member }}</span>
+              <span class="who-pill 
+                {% if st == 'Home' %}bg-green-100 text-green-700 border-green-300
+                {% elif st == 'Away' %}bg-gray-100 text-gray-600 border-gray-300
+                {% elif st == 'Out' %}bg-amber-100 text-amber-700 border-amber-300
+                {% elif st == 'Traveling' %}bg-indigo-100 text-indigo-700 border-indigo-300
+                {% elif st %}bg-blue-100 text-blue-700 border-blue-300
+                {% else %}bg-gray-100 text-gray-500 border-gray-200
+                {% endif %}">
+                {{ st or '—' }}
+              </span>
+            </span>
+          {% endfor %}
+        </div>
+        <form id="whoUnifiedForm" method="POST" action="/whoishome" onsubmit="return false" class="who-form mt-2" data-ajax="1">
+          <input type="hidden" name="action" id="whoAction" value="update">
+          <input type="hidden" name="name" id="whoName" value="">
+          <select name="status" class="status-select">
+            <option>Home</option>
+            <option>Away</option>
+            <option>Out</option>
+            <option>Traveling</option>
+          </select>
+          <button id="whoUpdateBtn" type="submit" class="who-update-btn">Update</button>
+          <button id="whoClearBtn" type="button" class="who-clear-btn" title="Clear my status">Clear</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if show_status %}
+    <div class="card">
+      <div class="card-header">
+        <i class="fa-solid fa-user-pen"></i>
+        <h2>Personal Status</h2>
+      </div>
+      <div class="card-body">
+        <div id="memberStatusChips" class="member-status-chips">
+          {% for name, text in member_statuses.items() %}
+            <span class="member-status-chip" data-name="{{ name }}">
+              {{ text }} <span class="member-status-name">— {{ name }}</span>
+            </span>
+          {% endfor %}
+        </div>
+        <form id="memberStatusForm" action="/status/update" method="POST" class="member-status-form mt-2">
+          <input type="hidden" name="name" id="memberStatusName" value="">
+          <input type="text" name="text" placeholder="My status" class="member-status-input" />
+          <button type="submit" class="member-status-save-btn">Save</button>
+        </form>
+        <form id="memberStatusDelete" action="/status/delete" method="POST" class="member-status-delete-form mt-2">
+          <input type="hidden" name="name" id="memberStatusDeleteName" value="">
+          <button type="submit" class="member-status-delete-btn">Remove My Status</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Chores -->
+    {% if show_chores_on_homepage and config.feature_toggles.get('chores', True) %}
+    <div class="card">
+      <div class="card-header">
+        <i class="fa-solid fa-list-check"></i>
+        <h2>Chores</h2>
+        <a href="/chores" class="chores-link">Open full list</a>
+      </div>
+      <div class="card-body">
+        {% if home_chores and home_chores|length %}
+          <ul class="chores-list">
+            {% for chore in home_chores %}
+              <li class="chore-item">
+                <div class="chore-info">
+                  <div class="chore-title">{{ chore.description }}</div>
+                  <div class="chore-meta">
+                    {{ chore.creator or 'Unknown' }}
+                    {% if chore.due_date %} • Due {{ chore.due_date.strftime('%Y-%m-%d') }}{% endif %}
+                  </div>
+                </div>
+                {% if chore.recurring_id %}<span class="chore-recurring">Recurring</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="empty">No open chores right now.</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Reminders -->
+    <div class="card">
+      <div class="card-header">
+        <i class="fa-solid fa-calendar-days"></i>
+        <h2>Reminders</h2>
+      </div>
+      <div class="card-body">
+        <!-- Keep the original reminders card content -->
+        <div id="remindersCard" style="min-height:520px">
+          <h2 class="text-xl font-bold flex items-center gap-2 mb-3"><i class="fa-solid fa-calendar-days text-blue-600"></i> Reminders</h2>
+          <div id="reminderMonthNav" class="flex items-center justify-between mb-2">
+            <button type="button" id="calPrev" class="px-2 py-1 rounded border bg-white hover:bg-gray-50" aria-label="Previous Month">◀</button>
+            <div id="calLabel" class="font-semibold flex-1 text-center"></div>
+            <button type="button" id="calNext" class="px-2 py-1 rounded border bg-white hover:bg-gray-50" aria-label="Next Month">▶</button>
+          </div>
+          <div class="flex justify-end mb-2"><button id="backToToday" type="button" class="hidden text-xs text-blue-600 hover:underline">Back to Today</button></div>
+          <div id="reminderWeekdayRow" class="grid grid-cols-7 gap-1 text-xs font-semibold text-gray-600 mb-1"></div>
+          <div id="calendar" class="grid grid-cols-7 gap-1 mb-4"></div>
+          <div class="flex items-center flex-wrap gap-2 mb-2" id="remindersHeader">
+            <button type="button" id="openAdd" class="btn btn-primary text-sm">Add Reminder</button>
+            <div class="text-sm text-gray-600" id="remindersSelectedDate"></div>
+            <div class="flex items-center gap-2 ml-auto" id="scopeBarWrap"></div>
+          </div>
+          <!-- Inline form now appears directly under header -->
+          <div id="reminderInlineFormWrap" class="hidden mb-3">
+            <form id="reminderInlineForm" class="space-y-3 bg-gray-50 dark:bg-slate-800/60 border rounded p-3">
+              <input type="hidden" name="id" value="">
+              <div>
+                <label class="block text-xs font-semibold mb-1">Title</label>
+                <input type="text" name="title" required class="w-full h-10 border rounded p-2 text-sm" placeholder="Reminder title">
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-semibold mb-1">Date</label>
+                  <input name="date" required type="date" class="h-10 w-full border rounded p-2 text-sm">
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold mb-1">Time</label>
+                  <input name="time" type="time" class="h-10 w-full border rounded p-2 text-sm" aria-label="Reminder time (optional)">
+                </div>
+              </div>
+              <div id="categorySelectRow" class="hidden">
+                <div class="flex items-end justify-between gap-3">
+                  <div class="flex-1">
+                    <label class="block text-xs font-semibold mb-1">Category</label>
+                    <select name="category" class="h-10 w-full border rounded p-2 text-sm"></select>
+                  </div>
+                  <label class="inline-flex items-center gap-2 text-xs flex-shrink-0 mb-1">
+                    <input type="checkbox" name="is_recurring" class="rounded">
+                    <span>Recurring</span>
+                  </label>
+                </div>
+              </div>
+              <!-- Recurrence controls: hidden until Recurring is checked -->
+              <div id="recurrenceControls" class="hidden space-y-2">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+                  <label class="text-xs text-gray-700 self-center">Repeat this every</label>
+                  <input name="rec_interval" type="number" min="1" step="1" value="1" class="h-10 w-full border rounded p-2 text-sm" aria-label="Recurrence interval">
+                  <select name="rec_unit" class="h-10 w-full border rounded p-2 text-sm" aria-label="Recurrence unit">
+                    <option value="day">day</option>
+                    <option value="week">week</option>
+                    <option value="month">month</option>
+                    <option value="year">year</option>
+                  </select>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                  <label class="text-xs text-gray-700 self-center">till</label>
+                  <input name="rec_end_date" type="date" class="h-10 w-full border rounded p-2 text-sm" placeholder="End date (optional)" aria-label="End date (optional)">
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold mb-1">Description</label>
+                <textarea name="description" rows="2" class="w-full border rounded p-2 text-sm"></textarea>
+              </div>
+              <div class="flex gap-2 justify-end pt-2 border-t">
+                <button type="button" id="reminderCancelBtn" class="px-3 py-1.5 text-sm rounded border bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600">Cancel</button>
+                <button type="submit" id="reminderSaveBtn" class="px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700">Save</button>
+              </div>
+            </form>
+          </div>
+          <form id="bulkDeleteForm" class="mb-2" data-creator="" >
+            <div id="remindersBulkBar" class="hidden flex items-center gap-3 bg-red-50 border border-red-200 rounded p-2 text-xs">
+              <span><span id="bulkCount">0</span> selected</span>
+              <input type="hidden" id="bulkIds" value="">
+              <input type="hidden" id="bulkUser" name="creator" value="">
+              <button type="submit" class="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700">Delete Selected</button>
+              <button type="button" id="bulkClearSel" class="px-2 py-1 rounded border bg-white hover:bg-gray-50">Clear</button>
             </div>
-			{% endif %}
-
-			<!-- Personal Status (compact) -->
-			{% if show_status %}
-			<div class="card p-4" id="personalStatusCard">
-				<h3 class="text-lg font-semibold mb-3 flex items-center gap-2"><i class="fa-solid fa-user-pen text-blue-600"></i> Personal Status</h3>
-				<div id="memberStatusChips" class="flex flex-wrap gap-2 mb-3 text-xs">
-					{% for name, text in member_statuses.items() %}
-						<span data-name="{{ name }}" class="px-2 py-1 rounded border bg-white shadow-sm">{{ text }} <span class="text-gray-500 text-[10px]">— {{ name }}</span></span>
-					{% endfor %}
-				</div>
-				<form id="memberStatusForm" action="/status/update" method="POST" class="flex items-center gap-2 text-xs">
-					<input type="hidden" name="name" id="memberStatusName" value="">
-					<input type="text" name="text" placeholder="My status" class="flex-1 border rounded p-1" />
-					<button type="submit" class="px-2 py-3 rounded bg-blue-600 text-white hover:bg-blue-700">Save</button>
-				</form>
-				<form id="memberStatusDelete" action="/status/delete" method="POST" class="mt-2 text-right">
-					<input type="hidden" name="name" id="memberStatusDeleteName" value="">
-					<button type="submit" class="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700 text-xs">Remove My Status</button>
-				</form>
-			</div>
-			{% endif %}
-		</div>
-
-		{% if show_chores_on_homepage and config.feature_toggles.get('chores', True) %}
-		<div class="card p-4" id="homeChoresCard">
-			<div class="flex items-center justify-between mb-3">
-				<h3 class="text-lg font-semibold flex items-center gap-2"><i class="fa-solid fa-list-check text-indigo-600"></i> Chores</h3>
-				<a href="/chores" class="text-sm text-blue-600 hover:underline">Open full list</a>
-			</div>
-			{% if home_chores and home_chores|length %}
-			<ul class="space-y-2">
-				{% for chore in home_chores %}
-				<li class="flex items-center justify-between gap-3 text-sm border rounded px-3 py-2 bg-white">
-					<div class="min-w-0">
-						<div class="font-medium truncate">{{ chore.description }}</div>
-						<div class="text-xs text-gray-500">
-							{{ chore.creator or 'Unknown' }}
-							{% if chore.due_date %} • Due {{ chore.due_date.strftime('%Y-%m-%d') }}{% endif %}
-						</div>
-					</div>
-					{% if chore.recurring_id %}<span class="text-[10px] px-2 py-0.5 rounded bg-indigo-100 text-indigo-700">Recurring</span>{% endif %}
-				</li>
-				{% endfor %}
-			</ul>
-			{% else %}
-			<div class="text-sm text-gray-500">No open chores right now.</div>
-			{% endif %}
-		</div>
-		{% endif %}
-	</div><!-- /left col -->
-
-	<div class="space-y-6">
-		<!-- Reminders & Calendar (moved to right column) -->
-		<div class="card p-6" id="remindersCard" style="min-height:520px">
-			<h2 class="text-xl font-bold flex items-center gap-2 mb-3"><i class="fa-solid fa-calendar-days text-blue-600"></i> Reminders</h2>
-			<div id="reminderMonthNav" class="flex items-center justify-between mb-2">
-				<button type="button" id="calPrev" class="px-2 py-1 rounded border bg-white hover:bg-gray-50" aria-label="Previous Month">◀</button>
-				<div id="calLabel" class="font-semibold flex-1 text-center"></div>
-				<button type="button" id="calNext" class="px-2 py-1 rounded border bg-white hover:bg-gray-50" aria-label="Next Month">▶</button>
-			</div>
-			<div class="flex justify-end mb-2"><button id="backToToday" type="button" class="hidden text-xs text-blue-600 hover:underline">Back to Today</button></div>
-			<div id="reminderWeekdayRow" class="grid grid-cols-7 gap-1 text-xs font-semibold text-gray-600 mb-1"></div>
-			<div id="calendar" class="grid grid-cols-7 gap-1 mb-4"></div>
-			<div class="flex items-center flex-wrap gap-2 mb-2" id="remindersHeader">
-				<button type="button" id="openAdd" class="btn btn-primary text-sm">Add Reminder</button>
-				<div class="text-sm text-gray-600" id="remindersSelectedDate"></div>
-				<div class="flex items-center gap-2 ml-auto" id="scopeBarWrap"></div>
-			</div>
-			<!-- Inline form now appears directly under header -->
-			<div id="reminderInlineFormWrap" class="hidden mb-3">
-				<form id="reminderInlineForm" class="space-y-3 bg-gray-50 dark:bg-slate-800/60 border rounded p-3">
-					<input type="hidden" name="id" value="">
-					<div>
-						<label class="block text-xs font-semibold mb-1">Title</label>
-						<input type="text" name="title" required class="w-full h-10 border rounded p-2 text-sm" placeholder="Reminder title">
-					</div>
-					<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-						<div>
-							<label class="block text-xs font-semibold mb-1">Date</label>
-							<input name="date" required type="date" class="h-10 w-full border rounded p-2 text-sm">
-						</div>
-						<div>
-							<label class="block text-xs font-semibold mb-1">Time</label>
-							<input name="time" type="time" class="h-10 w-full border rounded p-2 text-sm" aria-label="Reminder time (optional)">
-						</div>
-					</div>
-					<div id="categorySelectRow" class="hidden">
-						<div class="flex items-end justify-between gap-3">
-							<div class="flex-1">
-								<label class="block text-xs font-semibold mb-1">Category</label>
-								<select name="category" class="h-10 w-full border rounded p-2 text-sm"></select>
-							</div>
-							<label class="inline-flex items-center gap-2 text-xs flex-shrink-0 mb-1">
-								<input type="checkbox" name="is_recurring" class="rounded">
-								<span>Recurring</span>
-							</label>
-						</div>
-					</div>
-					<!-- Recurrence controls: hidden until Recurring is checked -->
-					<div id="recurrenceControls" class="hidden space-y-2">
-						<div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-							<label class="text-xs text-gray-700 self-center">Repeat this every</label>
-							<input name="rec_interval" type="number" min="1" step="1" value="1" class="h-10 w-full border rounded p-2 text-sm" aria-label="Recurrence interval">
-							<select name="rec_unit" class="h-10 w-full border rounded p-2 text-sm" aria-label="Recurrence unit">
-								<option value="day">day</option>
-								<option value="week">week</option>
-								<option value="month">month</option>
-								<option value="year">year</option>
-							</select>
-						</div>
-						<div class="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
-							<label class="text-xs text-gray-700 self-center">till</label>
-							<input name="rec_end_date" type="date" class="h-10 w-full border rounded p-2 text-sm" placeholder="End date (optional)" aria-label="End date (optional)">
-						</div>
-					</div>
-					<div>
-						<label class="block text-xs font-semibold mb-1">Description</label>
-						<textarea name="description" rows="2" class="w-full border rounded p-2 text-sm"></textarea>
-					</div>
-					<div class="flex gap-2 justify-end pt-2 border-t">
-						<button type="button" id="reminderCancelBtn" class="px-3 py-1.5 text-sm rounded border bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600">Cancel</button>
-						<button type="submit" id="reminderSaveBtn" class="px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700">Save</button>
-					</div>
-				</form>
-			</div>
-			<form id="bulkDeleteForm" class="mb-2" data-creator="" >
-				<div id="remindersBulkBar" class="hidden flex items-center gap-3 bg-red-50 border border-red-200 rounded p-2 text-xs">
-					<span><span id="bulkCount">0</span> selected</span>
-					<input type="hidden" id="bulkIds" value="">
-					<input type="hidden" id="bulkUser" name="creator" value="">
-					<button type="submit" class="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700">Delete Selected</button>
-					<button type="button" id="bulkClearSel" class="px-2 py-1 rounded border bg-white hover:bg-gray-50">Clear</button>
-				</div>
-			</form>
-			<div class="flex items-center justify-between mb-1 text-[11px] text-gray-500">
-				<div id="reminderCategorySummary" class="flex flex-wrap gap-2"></div>
-			</div>
-			<div id="remindersScroll" class="space-y-2 max-h-72 overflow-auto border rounded p-2 bg-white" aria-label="Reminders list"></div>
-			<noscript>
-				<div class="mt-4 text-sm text-gray-600">JavaScript disabled: reminders editing requires JS. Existing reminder counts are shown on the calendar only.</div>
-			</noscript>
-		</div>
-
-
-		<script id="legacyRemindersData" type="application/json">{% if reminders_data is defined %}{{ reminders_data|tojson }}{% else %}{{ reminders_json|safe }}{% endif %}</script>
-		<script id="reminderCategoriesData" type="application/json">{{ reminder_categories|tojson }}</script>
-		<script>
+          </form>
+          <div class="flex items-center justify-between mb-1 text-[11px] text-gray-500">
+            <div id="reminderCategorySummary" class="flex flex-wrap gap-2"></div>
+          </div>
+          <div id="remindersScroll" class="space-y-2 max-h-72 overflow-auto border rounded p-2 bg-white" aria-label="Reminders list"></div>
+          <noscript>
+            <div class="mt-4 text-sm text-gray-600">JavaScript disabled: reminders editing requires JS. Existing reminder counts are shown on the calendar only.</div>
+          </noscript>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Reminder scripts (must be after the reminders card) -->
+<script id="legacyRemindersData" type="application/json">{% if reminders_data is defined %}{{ reminders_data|tojson }}{% else %}{{ reminders_json|safe }}{% endif %}</script>
+<script id="reminderCategoriesData" type="application/json">{{ reminder_categories|tojson }}</script>
+<script>
 // Inject category color classes immediately after data is available
 (function(){
 	try {
@@ -275,7 +610,7 @@ window.REMINDERS_CAL_START = (function(){
 	}catch(e){ console.warn('Category style inject failed', e); }
 })();
 </script>
-		<script>
+<script>
 // --- Reminders Progressive Enhancement (clean re-integration) ---
 (function(){
 	// Wait until remindersApi is available (in case script ordering delays)
@@ -322,7 +657,7 @@ window.REMINDERS_CAL_START = (function(){
 	let catPalette={};
 	try{ const cats=JSON.parse(catDataEl?.textContent||'[]'); if(cats.length){ categoryRow.classList.remove('hidden'); categorySelect.innerHTML='<option value="">(No category)</option>'+cats.map(c=>`<option value="${c.key}">${c.label||c.key}</option>`).join(''); cats.forEach(c=>{ catPalette[c.key]=c.color||'#2563eb'; }); } }catch(e){}
 	function categoryColor(k){ return catPalette[k]; }
-	function escapeHtml(str){ return (str||'').replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c])); }
+	function escapeHtml(str){ return (str||'').replace(/[&<>"']/g, c=>({"&":"&","<":"<",">":">","\"":""","'":"'"}[c])); }
 	// Unified bulk bar updater (delegated-safe)
 	function updateBulkUI(){
 		const checked = Array.from(listWrap.querySelectorAll('.reminderChk:checked'));
@@ -395,12 +730,12 @@ window.REMINDERS_CAL_START = (function(){
 	function setSelectedDate(d){ header.setAttribute('data-selected-date', d); selectedDateDisplay.textContent=d; localStorage.setItem('remindersSelectedDate', d); }
 	function getSelectedDate(){ return header.getAttribute('data-selected-date') || localStorage.getItem('remindersSelectedDate') || new Date().toISOString().slice(0,10); }
 	const scopeBar=document.createElement('div'); scopeBar.className='flex gap-1'; scopeBar.innerHTML=['day','week','month'].map(s=>`<button type="button" data-scope="${s}" class="px-2 py-0.5 text-xs rounded border scopeBtn ${s===currentScope?'border-blue-500 text-blue-600 bg-blue-50':'border-gray-300 bg-white text-gray-600 hover:bg-gray-100'}">${s[0].toUpperCase()+s.slice(1)}</button>`).join(''); scopeBarWrap.appendChild(scopeBar);
-	scopeBar.addEventListener('click', e=>{ const b=e.target.closest('button[data-scope]'); if(!b)return; currentScope=b.getAttribute('data-scope'); localStorage.setItem('remindersScope', currentScope); scopeBar.querySelectorAll('.scopeBtn').forEach(btn=>{ const act=btn.getAttribute('data-scope')===currentScope; btn.className='px-2 py-0.5 text-xs rounded border scopeBtn '+(act?'border-blue-500 text-blue-600 bg-blue-50':'border-gray-300 bg-white text-gray-600 hover:bg-gray-100'); }); renderList(); });
+	scopeBar.addEventListener('click', e=>{ const b=e.target.closest('button[data-scope]'); if(!b)return; currentScope=b.getAttribute('data-scope'); localStorage.setItem('remindersScope', currentScope); scopeBar.querySelectorAll('.scopeBtn').forEach(btn=>{ const act=btn.getAttribute('data-scope')===currentScope; btn.className='px-2 py-0.5 text-xs rounded border scopeBtn '+(act?'border-blue-500 text-blue-600 bg-blue-50':'border-gray-300 bg-white text-gray-600 hover:bg-gray-100'); }); renderList(); }
 	function openForm(mode,dateStr,data){ inlineForm.reset(); editingId=null; inlineForm.querySelector('[name=id]').value=''; inlineForm.querySelector('[name=date]').value=dateStr; if(mode==='edit'&&data){ editingId=data.id; inlineForm.querySelector('[name=id]').value=data.id; inlineForm.querySelector('[name=title]').value=data.title; inlineForm.querySelector('[name=description]').value=data.description||''; if(data.category && categorySelect) categorySelect.value=data.category; if(data.time) inlineForm.querySelector('[name=time]').value=data.time; }
-		// reset recurring toggle state each time the form opens
-		if(recChk){ recChk.checked = false; }
-		toggleRecurringFields();
-		inlineWrap.classList.remove('hidden'); setTimeout(()=>inlineForm.querySelector('[name=title]').focus(),30); }
+	// reset recurring toggle state each time the form opens
+	if(recChk){ recChk.checked = false; }
+	toggleRecurringFields();
+	inlineWrap.classList.remove('hidden'); setTimeout(()=>inlineForm.querySelector('[name=title]').focus(),30); }
 	function closeForm(){ inlineWrap.classList.add('hidden'); editingId=null; if(typeof window.__editingRuleId!== 'undefined'){ window.__editingRuleId=null; } if(inlineForm){ inlineForm.reset(); } if(recChk){ recChk.checked=false; } toggleRecurringFields(); }
 	cancelBtn.addEventListener('click', closeForm);
 	document.getElementById('openAdd').addEventListener('click', ()=> openForm('create', getSelectedDate(), null));
@@ -692,33 +1027,33 @@ window.REMINDERS_CAL_START = (function(){
 		const currentUser=localStorage.getItem('username')||''; const adminName='{{ config.admin_name }}'; const isAdmin = [adminName,'Administrator','admin'].includes(currentUser);
 		out.forEach(r=>{
 			if(r.isRule){ const row=document.createElement('div'); row.className='group p-2 rounded border bg-white dark:bg-slate-800'; const meta = (r.time? ('at '+escapeHtml(fmtTime(r.time))+' · ') : '')+escapeHtml(r.creator||''); const canEdit = (function(){ const currentUser=localStorage.getItem('username')||''; const adminName='{{ config.admin_name }}'; const isAdmin = [adminName,'Administrator','admin'].includes(currentUser); return isAdmin || (r.creator && r.creator===currentUser); })(); const catClass = r.category?('rem-cat-dot-'+r.category):''; const dot = `<span class="inline-block w-2.5 h-2.5 rounded-full mr-1 flex-shrink-0 ${catClass||'bg-gray-400'}"></span>`; row.innerHTML = `<div class="font-semibold flex items-center">${dot}${escapeHtml(r.title)}<span class="ml-2 text-[11px] px-1 py-0.5 rounded border bg-white dark:bg-slate-800 text-gray-600">Recurring</span>${canEdit?`<button type="button" data-edit-rule="${r.id}" class="ml-2 text-[11px] px-1 py-0.5 rounded border bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-600" aria-label="Edit recurring">✎</button>`:''}${canEdit?`<button type="button" data-delete-rule="${r.id}" class="ml-1 text-[11px] px-1 py-0.5 rounded border bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30" aria-label="Delete recurring">✕</button>`:''}</div><div class="text-xs text-gray-500">${escapeHtml(formatRepeat(r.interval, r.unit, r.end_date))}${meta? ' · '+meta:''}${r.category? ' · '+escapeHtml(r.category):''}</div>`; listWrap.appendChild(row); }
-				else {
-					const canEdit = isAdmin || (r.creator && r.creator===currentUser);
-					const row=document.createElement('div');
-					row.className='group flex items-start gap-2 p-2 rounded border hover:bg-gray-50 dark:hover:bg-slate-700';
-					row.setAttribute('data-reminder-row','');
-					row.setAttribute('data-id', r.id);
-					row.setAttribute('data-date', r.date);
-					const catClass = r.category?('rem-cat-dot-'+r.category):'';
-					const dot = `<span class="inline-block w-2.5 h-2.5 rounded-full mr-1 flex-shrink-0 ${catClass||'bg-gray-400'}"></span>`;
-					const timeFrag = r.time?` <span class=\"ml-1 text-[10px] text-blue-600 dark:text-blue-300\">${fmtTime(r.time)}</span>`:'';
-					const meta = `${r.date}${timeFrag} · ${escapeHtml(r.creator||'')}${r.category?' · '+escapeHtml(r.category):''}`;
-					row.innerHTML=`${canEdit?`<label class=\"mt-1\"><input type=\"checkbox\" class=\"reminderChk\" value=\"${r.id}\" aria-label=\"Select reminder\"></label>`:''}
-						<div class=\"flex-1 ${canEdit?'cursor-pointer':''}\" data-edit>
-							<div class=\"font-semibold flex items-center\">${dot}${escapeHtml(r.title)}${canEdit?`<button type=\"button\" class=\"ml-2 text-[11px] px-1 py-0.5 rounded border bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-600 editBtn hidden group-hover:inline\" aria-label=\"Edit\">✎</button>`:''}</div>
-							<div class=\"text-xs text-gray-500 dark:text-gray-400\">${meta}</div>
-							${r.description?`<div class=\"text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap mt-1\">${escapeHtml(r.description)}</div>`:''}
-						</div>
-						${canEdit?`<button type=\"button\" class=\"opacity-0 group-hover:opacity-100 transition text-xs px-2 py-1 rounded border bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 deleteOne\" aria-label=\"Delete\">✕</button>`:''}`;
-					listWrap.appendChild(row);
-					// Bind single-item edit when allowed (delete handled by delegated listener)
-					if(canEdit){
-						const editTarget = row.querySelector('[data-edit]');
-						const editBtn = row.querySelector('.editBtn');
-						if(editTarget){ editTarget.addEventListener('dblclick',()=> openForm('edit', r.date, r)); }
-						if(editBtn){ editBtn.addEventListener('click',()=> openForm('edit', r.date, r)); }
-					}
+			else {
+				const canEdit = isAdmin || (r.creator && r.creator===currentUser);
+				const row=document.createElement('div');
+				row.className='group flex items-start gap-2 p-2 rounded border hover:bg-gray-50 dark:hover:bg-slate-700';
+				row.setAttribute('data-reminder-row','');
+				row.setAttribute('data-id', r.id);
+				row.setAttribute('data-date', r.date);
+				const catClass = r.category?('rem-cat-dot-'+r.category):'';
+				const dot = `<span class="inline-block w-2.5 h-2.5 rounded-full mr-1 flex-shrink-0 ${catClass||'bg-gray-400'}"></span>`;
+				const timeFrag = r.time?` <span class=\"ml-1 text-[10px] text-blue-600 dark:text-blue-300\">${fmtTime(r.time)}</span>`:'';
+				const meta = `${r.date}${timeFrag} · ${escapeHtml(r.creator||'')}${r.category?' · '+escapeHtml(r.category):''}`;
+				row.innerHTML=`${canEdit?`<label class=\"mt-1\"><input type=\"checkbox\" class=\"reminderChk\" value=\"${r.id}\" aria-label=\"Select reminder\"></label>`:''}
+					<div class=\"flex-1 ${canEdit?'cursor-pointer':''}\" data-edit>
+						<div class=\"font-semibold flex items-center\">${dot}${escapeHtml(r.title)}${canEdit?`<button type=\"button\" class=\"ml-2 text-[11px] px-1 py-0.5 rounded border bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-600 editBtn hidden group-hover:inline\" aria-label=\"Edit\">✎</button>`:''}</div>
+						<div class=\"text-xs text-gray-500 dark:text-gray-400\">${meta}</div>
+						${r.description?`<div class=\"text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap mt-1\">${escapeHtml(r.description)}</div>`:''}
+					</div>
+					${canEdit?`<button type=\"button\" class=\"opacity-0 group-hover:opacity-100 transition text-xs px-2 py-1 rounded border bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 deleteOne\" aria-label=\"Delete\">✕</button>`:''}`;
+				listWrap.appendChild(row);
+				// Bind single-item edit when allowed (delete handled by delegated listener)
+				if(canEdit){
+					const editTarget = row.querySelector('[data-edit]');
+					const editBtn = row.querySelector('.editBtn');
+					if(editTarget){ editTarget.addEventListener('dblclick',()=> openForm('edit', r.date, r)); }
+					if(editBtn){ editBtn.addEventListener('click',()=> openForm('edit', r.date, r)); }
 				}
+			}
 		});
 		// bind rule edit/delete
 		bindRuleEdits();
@@ -754,7 +1089,7 @@ window.REMINDERS_CAL_START = (function(){
 		scopeList.forEach(r => { if (r.category) counts[r.category] = (counts[r.category] || 0) + 1; });
 		// include recurring rules in-scope
 		const dateStr=getSelectedDate(); const dObj=new Date(dateStr);
-		const within = (ds)=>{ if(currentScope==='day') return ds===dateStr; if(currentScope==='week'){ const base=dObj; const mon=new Date(base.getFullYear(), base.getMonth(), base.getDate()-((base.getDay()+6)%7)); const end=new Date(mon.getFullYear(), mon.getMonth(), mon.getDate()+6); const rd=new Date(ds); return rd>=mon && rd<=end; } return true; };
+		const within = (ds)=>{ if(currentScope==='day') return ds===dateStr; if(currentScope==='week'){ const base=dObj; const mon=new Date(base.getFullYear(), base.getMonth(), base.getDate()-((base.getDay()+6)%7)); const end=new Date(mon.getFullYear(), base.getMonth(), base.getDate()+6); const rd=new Date(ds); return rd>=mon && rd<=end; } return true; };
 		const mkey=dObj.getFullYear()+'-'+String(dObj.getMonth()+1).padStart(2,'0'); const cache=monthCache[mkey]||{};
 		(cache.recurring_rules||[]).forEach(rr=>{ if(!rr.category) return; const inScope = (rr.dates||[]).filter(within).length; if(inScope){ counts[rr.category]=(counts[rr.category]||0)+inScope; } });
 		const ordered = Object.entries(counts).sort((a, b) => b[1] - a[1]);
@@ -797,310 +1132,6 @@ window.REMINDERS_CAL_START = (function(){
 	}
 	function paintItems(list){ const currentUser=localStorage.getItem('username')||''; const adminName='{{ config.admin_name }}'; const isAdmin = [adminName,'Administrator','admin'].includes(currentUser); const selections=new Set(); listWrap.innerHTML=''; bulkBar.classList.add('hidden'); bulkCount.textContent='0'; if(!list.length){ listWrap.innerHTML='<div class="text-gray-500">No reminders</div>'; return;} list.sort((a,b)=> (a.date.localeCompare(b.date)) || ((a.time||'~').localeCompare(b.time||'~')) || (a.id-b.id));
 	function fmtTime(val){ if(!val) return ''; if(window.REMINDERS_TIME_FORMAT==='24h') return val; const [h,m]=val.split(':'); let hh=parseInt(h,10); const ap=hh>=12?'PM':'AM'; hh = (hh%12)||12; return hh+':'+m+' '+ap; }
-	list.forEach(r=>{ const canEdit = isAdmin || (r.creator && r.creator===currentUser); const row=document.createElement('div'); row.className='group flex items-start gap-2 p-2 rounded border hover:bg-gray-50 dark:hover:bg-slate-700'; const catClass = r.category?('rem-cat-dot-'+r.category):''; const dot = `<span class="inline-block w-2.5 h-2.5 rounded-full mr-1 flex-shrink-0 ${catClass||'bg-gray-400'}"></span>`; const timeFrag = r.time?` <span class=\"ml-1 text-[10px] text-blue-600 dark:text-blue-300\">${fmtTime(r.time)}</span>`:''; const meta = `${r.date}${timeFrag} · ${escapeHtml(r.creator||'')}${r.category?' · '+escapeHtml(r.category):''}`; row.innerHTML=`${canEdit?`<label class=\"mt-1\"><input type=\"checkbox\" class=\"reminderChk\" value=\"${r.id}\" aria-label=\"Select reminder\"></label>`:''}<div class=\"flex-1 ${canEdit?'cursor-pointer':''}\" data-edit><div class=\"font-semibold flex items-center\">${dot}${escapeHtml(r.title)}${canEdit?`<button type=\"button\" class=\"ml-2 text-[11px] px-1 py-0.5 rounded border bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-600 editBtn hidden group-hover:inline\" aria-label=\"Edit\">✎</button>`:''}</div><div class=\"text-xs text-gray-500 dark:text-gray-400\">${meta}</div>${r.description?`<div class=\"text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap mt-1\">${escapeHtml(r.description)}</div>`:''}</div>${canEdit?`<button type=\"button\" class=\"opacity-0 group-hover:opacity-100 transition text-xs px-2 py-1 rounded border bg-white dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 deleteOne\" aria-label=\"Delete\">✕</button>`:''}`; if(canEdit){ const editTarget=row.querySelector('[data-edit]'); editTarget.addEventListener('dblclick',()=> openForm('edit', r.date, r)); row.querySelector('.editBtn').addEventListener('click',()=> openForm('edit', r.date, r)); row.querySelector('.deleteOne').addEventListener('click',()=>{ const creator=currentUser; const snapshot=JSON.parse(JSON.stringify(r)); window.remindersApi.removeMany([r.id],creator).then(resp=>{ if(resp.ok){ Object.values(monthCache).forEach(mc=>{ mc.reminders=mc.reminders.filter(x=>x.id!==r.id); }); toast('Deleted (undo available)','success'); const host=document.getElementById('toastHost'); if(host){ const undo=document.createElement('div'); undo.className='pointer-events-auto px-3 py-2 rounded shadow text-sm bg-blue-600 text-white cursor-pointer'; undo.textContent='Undo delete'; undo.onclick=()=>{ const d=new Date(snapshot.date); const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); if(!monthCache[key]) monthCache[key]={reminders:[],counts:{},categories_counts:{}}; monthCache[key].reminders.push(snapshot); renderList(); updateCalendarBadges(); undo.remove(); }; host.appendChild(undo); setTimeout(()=>undo.remove(),6000);} renderList(); updateCalendarBadges(); } else toast('Delete failed','error');}); }); }
-	listWrap.appendChild(row); }); function updateBulk(){ bulkCount.textContent=selections.size; bulkIds.value=Array.from(selections).join(','); bulkBar.classList.toggle('hidden', !selections.size); } listWrap.querySelectorAll('.reminderChk').forEach(cb=>cb.addEventListener('change',()=>{ const id=parseInt(cb.value); if(cb.checked) selections.add(id); else selections.delete(id); updateBulk(); })); document.getElementById('bulkClearSel').onclick=()=>{ selections.clear(); listWrap.querySelectorAll('.reminderChk').forEach(c=>c.checked=false); updateBulk(); }; const bulkForm=document.getElementById('bulkDeleteForm'); if(bulkForm && !bulkForm.dataset.ajax){ bulkForm.dataset.ajax='1'; bulkForm.addEventListener('submit', e=>{ e.preventDefault(); const ids=Array.from(selections); if(!ids.length) return; const creator=localStorage.getItem('username')||''; window.remindersApi.removeMany(ids,creator).then(resp=>{ if(!resp.ok){ toast('Delete failed','error'); return;} Object.values(monthCache).forEach(mc=>{ mc.reminders=mc.reminders.filter(r=>!ids.includes(r.id)); }); toast('Deleted '+ids.length,'success'); selections.clear(); bulkCount.textContent='0'; bulkBar.classList.add('hidden'); renderList(); updateCalendarBadges(); }); }); }
-	}
-
-	// Add edit handling for recurring rule cards
-	function bindRuleEdits(){
-		listWrap.querySelectorAll('[data-edit-rule]')?.forEach(btn=>{
-			btn.addEventListener('click', ()=>{
-				const rid = parseInt(btn.getAttribute('data-edit-rule'));
-				const mkey=display.getFullYear()+'-'+String(display.getMonth()+1).padStart(2,'0');
-				const cache=monthCache[mkey]||{}; const rr=(cache.recurring_rules||[]).find(x=>x.id===rid);
-				if(!rr) return;
-				// Populate form for rule editing
-				inlineForm.reset(); editingId=null; window.__editingRuleId = rid;
-				inlineForm.querySelector('[name=title]').value = rr.title||'';
-				inlineForm.querySelector('[name=description]').value = rr.description||'';
-				if(rr.time) inlineForm.querySelector('[name=time]').value = rr.time;
-				if(categorySelect && rr.category) categorySelect.value = rr.category;
-				if(recChk){ recChk.checked = true; }
-				inlineForm.querySelector('[name=rec_interval]').value = rr.interval||1;
-				inlineForm.querySelector('[name=rec_unit]').value = rr.unit||'day';
-				if(rr.end_date) inlineForm.querySelector('[name=rec_end_date]').value = rr.end_date;
-				// set date field to rule start_date so user can change anchor
-				inlineForm.querySelector('[name=date]').value = rr.start_date || getSelectedDate();
-				toggleRecurringFields();
-				inlineWrap.classList.remove('hidden');
-			});
-		});
-	}
-	function onMonthChange(delta){ 
-		const oldMonth = display.getMonth(); 
-		display = new Date(display.getFullYear(), display.getMonth()+delta, 1); 
-		buildAndEnsure(); 
-		// When month changes, show entire month and switch to first day of that month
-		const firstDayOfMonth = display.getFullYear()+'-'+String(display.getMonth()+1).padStart(2,'0')+'-01';
-		setSelectedDate(firstDayOfMonth);
-		// Reset scope to month to show full month list
-		currentScope='month'; 
-		localStorage.setItem('remindersScope', currentScope);
-		scopeBar.querySelectorAll('.scopeBtn').forEach(btn=>{ 
-			const act=btn.getAttribute('data-scope')===currentScope; 
-			btn.className='px-2 py-0.5 text-xs rounded border scopeBtn '+(act?'border-blue-500 text-blue-600 bg-blue-50':'border-gray-300 bg-white text-gray-600 hover:bg-gray-100'); 
-		}); 
-		renderList(); 
-	}
-
-	// Fix: when reloading page after viewing another month, ensure selected date's month matches display month cache and list uses current month not stale prior selection
-	function normalizeAfterInitialLoad(){
-		const selected = getSelectedDate();
-		const selDate = new Date(selected);
-		if(selDate.getMonth() !== display.getMonth() || selDate.getFullYear() !== display.getFullYear()){
-			// Reset selected date to today's date within current display month
-			const today=new Date();
-			if(today.getMonth()===display.getMonth() && today.getFullYear()===display.getFullYear()){
-				setSelectedDate(today.toISOString().slice(0,10));
-			}else{
-				// fallback to first day of display month
-				const firstDayOfMonth = display.getFullYear()+'-'+String(display.getMonth()+1).padStart(2,'0')+'-01';
-				setSelectedDate(firstDayOfMonth);
-			}
-		}
-	}
-	prevBtn.addEventListener('click', ()=> onMonthChange(-1));
-	nextBtn.addEventListener('click', ()=> onMonthChange(1));
-	function buildAndEnsure(){ const mk=display.getFullYear()+'-'+String(display.getMonth()+1).padStart(2,'0'); const have = monthCache[mk]; if(!have || !have.recurring_rules){ fetchMonth(mk+'-01', true).then(()=>{ renderCalendar(); renderList(); }); } renderCalendar(); }
-	const startDate = getSelectedDate(); setSelectedDate(startDate); buildAndEnsure(); normalizeAfterInitialLoad(); renderList();
-	// No dropdown filter now
-	bulkUser.value = localStorage.getItem('username')||'';
-	
-	// Re-render list when user switches to update edit/delete visibility
-	document.addEventListener('user-switched', function() {
-		bulkUser.value = localStorage.getItem('username')||'';
-		renderList(); // This will recalculate canEdit for all items
-	});
-	}
-	})();
-		</script>
-	</div> <!-- /right col -->
-</div> <!-- /grid -->
-<script>
-	// Live updating time and date
-	(function updateDateTime() {
-		const timeEl = document.getElementById('currentTime');
-		const dateEl = document.getElementById('currentDate');
-		if (!timeEl || !dateEl) return;
-		
-		function update() {
-			const now = new Date();
-			timeEl.textContent = now.toLocaleTimeString();
-			dateEl.textContent = now.toLocaleDateString(undefined, { 
-				weekday: 'long', 
-				year: 'numeric', 
-				month: 'long', 
-				day: 'numeric' 
-			});
-		}
-		
-		update(); // Initial update
-		setInterval(update, 1000); // Update every second
-	})();
-		// Toggle visibility of Notice form based on current user (admin)
-		(function(){
-			const nf = document.getElementById('noticeForm');
-			if(!nf) return;
-			const adminName = '{{ config.admin_name }}';
-			function update(){
-				const current = localStorage.getItem('username');
-				if (!(current === adminName || current === 'Administrator' || current === 'admin')) {
-					nf.style.display = 'none';
-				} else {
-					nf.style.display = '';
-				}
-				const userField = nf.querySelector('input[name="user"]');
-				if (userField) userField.value = current || '';
-			}
-			update();
-			document.getElementById('userSwitcher')?.addEventListener('change', update);
-		})();
-</script>
-<script>
-// Enhance chips for member personal statuses with per-name coloring; default and hide admin for Who is Home quick controls
-(function(){
-	// Personal member statuses: give each member a stable color
-	function colorPersonalChips(){
-		const chips = document.querySelectorAll('#memberStatusChips span[data-name]');
-		const palette = ['#DBEAFE','#FEF3C7','#DCFCE7','#FCE7F3','#E9D5FF','#FFEDD5','#E5E7EB'];
-		const names = Array.from(new Set(Array.from(chips).map(el=>el.getAttribute('data-name'))));
-		names.forEach((name, idx)=>{
-			const els = Array.from(chips).filter(e=>e.getAttribute('data-name')===name);
-			const bg = palette[idx % palette.length];
-			els.forEach(el=>{ el.style.backgroundColor = bg; el.style.borderColor = '#CBD5E1'; });
-		});
-	}
-	colorPersonalChips();
-	// Helper to update Who is Home quick controls and member status forms for current user
-	function updateHomeAndStatusUI(){
-		const current = localStorage.getItem('username') || '';
-		const adminName = '{{ config.admin_name }}';
-		// Hidden inputs
-		document.getElementById('whoName')?.setAttribute('value', current);
-		document.getElementById('whoNameClear')?.setAttribute('value', current);
-		document.getElementById('memberStatusName')?.setAttribute('value', current);
-		document.getElementById('memberStatusDeleteName')?.setAttribute('value', current);
-		// Update user chip
-		const chip = document.getElementById('memberStatusUserChip');
-		if (chip){ chip.textContent = current ? current : ''; }
-		// Admin: hide quick controls and personal status editor
-		const isAdmin = (current === adminName || current === 'Administrator' || current === 'admin');
-		const quick = document.getElementById('whoUnifiedForm');
-		const msForm = document.getElementById('memberStatusForm');
-		const msDel = document.getElementById('memberStatusDelete');
-		const whoCard = document.getElementById('whoHomeCard');
-		const personalCard = document.getElementById('personalStatusCard');
-		if (isAdmin){
-			whoCard?.classList.add('hidden');
-			personalCard?.classList.add('hidden');
-			return; // hide entire cards for admin
-		}else{
-			whoCard?.classList.remove('hidden');
-			personalCard?.classList.remove('hidden');
-			quick?.classList.remove('hidden');
-			msForm?.classList.remove('hidden');
-		}
-		// Show delete button only if current user has a status chip
-		const chips = document.querySelectorAll('#memberStatusChips span[data-name]');
-		const hasStatus = Array.from(chips).some(el => el.getAttribute('data-name') === current);
-		if (msDel){ msDel.classList.toggle('hidden', !hasStatus); }
-	}
-	// Initial paint
-	updateHomeAndStatusUI();
-	// Update on user switch without refresh (global event from base.html)
-	document.addEventListener('user-switched', updateHomeAndStatusUI);
-
-	// Unified Who is Home form clear button handling
-	const whoClearBtn = document.getElementById('whoClearBtn');
-	const whoUnifiedForm = document.getElementById('whoUnifiedForm');
-	if (whoClearBtn && whoUnifiedForm){
-		whoClearBtn.addEventListener('click', function(){
-			const actionField = document.getElementById('whoAction');
-			if(actionField){ actionField.value = 'clear'; }
-			whoUnifiedForm.submit();
-		});
-		const updateBtn = document.getElementById('whoUpdateBtn');
-		if(updateBtn){
-			updateBtn.addEventListener('click', function(){
-				const actionField = document.getElementById('whoAction');
-				if(actionField){ actionField.value = 'update'; }
-			});
-		}
-	}
-})();
-</script>
-<script>
-// AJAX enhancement for Who is Home & Personal Status forms (no page reload)
-(function(){
-	// Skip if Who is Home feature disabled
-	if(!document.getElementById('whoUnifiedForm') && !document.getElementById('whoStatusList')) return;
-		// Family members injected from server
-		const FAMILY_MEMBERS = JSON.parse(document.getElementById('familyMembersData').textContent || '[]');
-		function fetchJson(url, opts){
-		opts = opts || {}; opts.headers = Object.assign({'X-Requested-With':'fetch'}, opts.headers||{});
-		return fetch(url, opts).then(r=>r.json().catch(()=>({error:'Bad JSON'})));
-	}
-	const whoForm = document.getElementById('whoUnifiedForm');
-	const memberForm = document.getElementById('memberStatusForm');
-	const memberDel = document.getElementById('memberStatusDelete');
-	const whoList = document.getElementById('whoStatusList');
-	const memberChips = document.getElementById('memberStatusChips');
-	// Safe toast alias (previous inline function removed) to avoid ReferenceError breaking listeners
-	const toast = (msg,type)=>{ if(window.globalToast) window.globalToast(msg,type); else console.log('[toast]', type||'', msg); };
-	function currentUser(){ return localStorage.getItem('username')||''; }
-	function updateWhoDOM(data){
-		if(!data) return;
-		let statuses={};
-		if(Array.isArray(data.entries)) data.entries.forEach(e=>{ statuses[e.name]=e.status; });
-		else if(data.who_statuses && typeof data.who_statuses==='object') statuses=data.who_statuses;
-		// Use requestAnimationFrame to batch DOM updates and prevent layout thrashing
-		requestAnimationFrame(()=>{
-			whoList.querySelectorAll('[data-member]').forEach(container=>{
-				const member=container.getAttribute('data-member');
-				const st=statuses[member];
-				const pill=container.querySelector('.status-pill');
-				if(!pill) return;
-				// Update text content only if changed
-				const newText=st||'—';
-				if(pill.textContent!==newText) pill.textContent=newText;
-				// Compute new classes
-				const baseClasses=['px-1.5','py-0.5','rounded','text-[10px]','leading-none','status-pill'];
-				let colorClasses=[];
-				if(st==='Home'){ colorClasses=['bg-green-100','text-green-700','border','border-green-300']; }
-				else if(st==='Away'){ colorClasses=['bg-gray-100','text-gray-600','border','border-gray-300']; }
-				else if(st==='Out'){ colorClasses=['bg-amber-100','text-amber-700','border','border-amber-300']; }
-				else if(st==='Traveling'){ colorClasses=['bg-indigo-100','text-indigo-700','border','border-indigo-300']; }
-				else if(st){ colorClasses=['bg-blue-100','text-blue-700','border','border-blue-300']; }
-				else{ colorClasses=['bg-gray-100','text-gray-500','border','border-gray-200']; }
-				// Replace className entirely to avoid classList manipulation overhead
-				pill.className=baseClasses.concat(colorClasses).join(' ');
-			});
-		});
-	}
-	function recolorMemberChips(){
-		const chips = memberChips.querySelectorAll('span[data-name]');
-		const palette=['#DBEAFE','#FEF3C7','#DCFCE7','#FCE7F3','#E9D5FF','#FFEDD5','#E5E7EB'];
-		const names=[...new Set(Array.from(chips).map(c=>c.dataset.name))];
-		names.forEach((n,i)=>{ const bg=palette[i%palette.length]; chips.forEach(ch=>{ if(ch.dataset.name===n){ ch.style.backgroundColor=bg; ch.style.borderColor='#CBD5E1'; } }); });
-	}
-		function updateMemberStatusDOM(data){
-			if(!data) return;
-			let entries=[];
-			if(Array.isArray(data.entries)) entries=data.entries;
-			else if(data.member_statuses && typeof data.member_statuses==='object'){
-				entries = Object.entries(data.member_statuses).map(([name,text])=>({name,text}));
-			}
-			memberChips.innerHTML='';
-			entries.forEach(e=>{ if(!e.text) return; const span=document.createElement('span'); span.dataset.name=e.name; span.className='px-2 py-1 rounded border bg-white shadow-sm text-xs'; span.innerHTML=e.text+' <span class="text-gray-500 text-[10px]">— '+e.name+'</span>'; memberChips.appendChild(span); });
-		recolorMemberChips();
-		const user=currentUser();
-		const has=Array.from(memberChips.querySelectorAll('span[data-name]')).some(el=>el.dataset.name===user);
-		memberDel.classList.toggle('hidden', !has);
-	}
-		if(whoForm){ whoForm.addEventListener('submit', e=>{ e.preventDefault(); const fd=new FormData(whoForm); const payload=new URLSearchParams(fd); const actionField=document.getElementById('whoAction'); const actVal=actionField?.value; const targetUrl=whoForm.getAttribute('action'); fetchJson(targetUrl,{method:'POST',body:payload}).then(resp=>{ if(resp && resp.ok){ updateWhoDOM(resp); const resType = resp.result || (actVal==='clear'?'cleared':'updated'); if(resType==='cleared') toast('Status cleared','success'); else if(resType==='none') toast('No status to clear','info'); else toast('Status updated','success'); if(actionField) actionField.value='update'; } else toast(resp && resp.error || 'Update failed','error'); }); }); }
-	const whoClear=document.getElementById('whoClearBtn');
-	if(whoClear){
-		whoClear.addEventListener('click', e=>{
-			e.preventDefault();
-			if(!whoForm) return;
-			const nameVal = whoForm.querySelector('[name=name]')?.value || '';
-			const payload = new URLSearchParams();
-			payload.append('action','clear');
-			payload.append('name', nameVal);
-			fetchJson(whoForm.getAttribute('action'), { method:'POST', body: payload }).then(resp=>{
-				if(resp && resp.ok){
-					updateWhoDOM(resp);
-					if(resp.result==='cleared') toast('Status cleared','success');
-					else if(resp.result==='none') toast('No status to clear','info');
-					else toast('Status updated','success');
-				} else {
-					toast((resp && resp.error) || 'Update failed','error');
-				}
-			});
-		});
-	}
-		if(memberForm){ memberForm.addEventListener('submit', e=>{ e.preventDefault(); const input=memberForm.querySelector('[name=text]'); const val=(input?.value||'').trim(); if(!val){ toast('Cannot save empty status','info'); return; } const fd=new FormData(memberForm); const qs=new URLSearchParams(fd); const targetUrl=memberForm.getAttribute('action'); fetchJson(targetUrl,{method:'POST',body:qs}).then(resp=>{ if(resp && resp.ok){ updateMemberStatusDOM(resp); memberForm.reset(); memberForm.querySelector('[name=name]').value=currentUser(); toast('Status saved','success'); } else { if(resp && resp.error==='Empty status'){ toast('Cannot save empty status','info'); } else toast(resp && resp.error || 'Save failed','error'); } }); }); }
-		if(memberDel){ memberDel.addEventListener('submit', e=>{ e.preventDefault(); const fd=new FormData(memberDel); const qs=new URLSearchParams(fd); const targetUrl=memberDel.getAttribute('action'); fetchJson(targetUrl,{method:'POST',body:qs}).then(resp=>{ if(resp && resp.ok){ updateMemberStatusDOM(resp); toast('Status removed','success'); } else toast(resp && resp.error || 'Remove failed','error'); }); }); }
-	// Initialize name fields
-	const cur=currentUser();
-	document.getElementById('whoName')?.setAttribute('value', cur);
-	document.getElementById('memberStatusName')?.setAttribute('value', cur);
-	document.getElementById('memberStatusDeleteName')?.setAttribute('value', cur);
-})();
-</script>
-
-<!-- Initialize weather widget independently (outside who_is_home IIFE) -->
-<script>
-(function() {
-	const weatherConfigElement = document.getElementById('weatherConfigData');
-	if (typeof window.initWeatherWidget === 'function' && weatherConfigElement) {
-		try {
-			const weatherConfig = JSON.parse(weatherConfigElement.textContent);
-			window.initWeatherWidget(weatherConfig);
-		} catch (e) {
-			console.error('Failed to parse weather config:', e);
-		}
-	}
-})();
+}
 </script>
 {% endblock %}
