@@ -164,8 +164,8 @@ def create_app(test_config: dict | None = None):
                     users_to_create.append(('Admin', admin_password))
                 if aranya_password:
                     users_to_create.append(('Aranya', aranya_password))
-                if bid_password:
-                    users_to_create.append(('Bidisha', bid_password))
+                if bidisha_password:
+                    users_to_create.append(('Bidisha', bidisha_password))
                 
                 # If no specific passwords provided, create default users with a warning
                 # In production, you should always set these via environment variables

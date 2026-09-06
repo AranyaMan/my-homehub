@@ -19,7 +19,7 @@ def reload_config_and_auth():
     # Otherwise, fall back to site-wide password for backward compatibility during setup
     if User.query.first():
         # Per-user authentication mode
-        if not session.get('user_id') and not endpoint.startswith('static') and endpoint not in ('main.login', 'main.register'):
+        if not session.get('user_id') and not endpoint.startswith('static') and endpoint not in ('main.login',):
             return redirect(url_for('main.login'))
     else:
         # Site-wide password mode (backward compatibility)
