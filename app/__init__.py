@@ -144,54 +144,12 @@ def create_app(test_config: dict | None = None):
             add_column_if_missing('recurring_expense', 'effective_from', 'DATE', None)
             
 # Ensure tables exist
-            with db.engine.begin() as conn:
-                conn.execute(text("CREATE TABLE IF NOT EXISTS member_status (id SERIAL PRIMARY KEY, name VARCHAR(64), text TEXT, updated_at TIMESTAMP)"))
-                conn.execute(text("CREATE TABLE IF NOT EXISTS grocery_history (id SERIAL PRIMARY KEY, item VARCHAR(256), creator VARCHAR(64), timestamp TIMESTAMP)"))
-                conn.execute(text("CREATE TABLE IF NOT EXISTS app_setting (key VARCHAR(64) PRIMARY KEY, value TEXT)"))
-            
-            # Create default users from environment variables if none exist
-            # This allows configuring users via Render.com environment variables
-            if User.query.count() == 0:
-                # Get admin password from environment
-                admin_password = os.environ.get('ADMIN_PASSWORD')
-                aranya_password = os.environ.get('ARANYA_PASSWORD')
-                bidisha_password = os.environ.get('BIDISHA_PASSWORD')  # Note: using BIDISHA_PASSWORD as requested
-                
-                # Create users if passwords are provided
-                users_to_create = []
-                
-                if admin_password:
-                    users_to_create.append(('Admin', admin_password))
-                if aranya_password:
-                    users_to_create.append(('Aranya', aranya_password))
-                if bidisha_password:
-                    users_to_create.append(('Bidisha', bidisha_password))
-                
-                # If no specific passwords provided, create default users with a warning
-                # In production, you should always set these via environment variables
-                if not users_to_create:
-                    app.logger.warning("No user passwords found in environment variables. Creating default users with password 'changeme123' - PLEASE CHANGE IN PRODUCTION!")
-                    default_password = 'changeme123'
-                    users_to_create = [('Admin', default_password), ('Aranya', default_password), ('Bidisha', default_password)]
-                
-                # Create the users
-                for username, password in users_to_create:
-                    user = User(username=username)
-                    user.set_password(password)
-                    db.session.add(user)
-                
-                try:
-                    db.session.commit()
-                    app.logger.info(f"Created {len(users_to_create)} default users from environment variables")
-                except Exception as e:
-                    db.session.rollback()
-                    app.logger.error(f"Failed to create default users: {e}")
-
-        except Exception as e:
-            # Log but don't crash on migration errors
-            app.logger.warning(f"Auto-migration skipped or failed: {e}")
-
-    from .blueprints import main_bp
+             with db.engine.begin() as conn:
+                 conn.execute(text("CREATE TABLE IF NOT EXISTS member_status (id SERIAL PRIMARY KEY, name VARCHAR(64), text TEXT, updated_at TIMESTAMP)"))
+                 conn.execute(text("CREATE TABLE IF NOT EXISTS grocery_history (id SERIAL PRIMARY KEY, item VARCHAR(256), creator VARCHAR(64), timestamp TIMESTAMP)"))
+                 conn.execute(text("CREATE TABLE IF NOT EXISTS app_setting (key VARCHAR(64) PRIMARY KEY, value TEXT)"))
+ 
+     from .blueprints import main_bp
     # Register modular route modules to attach endpoints to main_bp
     from .blueprints import auth  # noqa: F401
     from .blueprints import dashboard  # noqa: F401

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="max-w-md mx-auto card p-6">
+    <h2 class="text-2xl font-bold mb-4">Initial Setup</h2>
+    <p class="text-sm text-gray-600 mb-4">Create the initial three users for your HomeHub:</p>
+    <form method="POST" class="space-y-4">
+        <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Admin User</label>
+            <input type="text" name="admin_username" class="w-full p-2 border rounded" placeholder="Username" value="Admin" required>
+            <input type="password" name="admin_password" class="w-full p-2 border rounded" placeholder="Password" required>
+        </div>
+        
+        <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Aranya User</label>
+            <input type="text" name="aranya_username" class="w-full p-2 border rounded" placeholder="Username" value="Aranya" required>
+            <input type="password" name="aranya_password" class="w-full p-2 border rounded" placeholder="Password" required>
+        </div>
+        
+        <div class="space-y-2">
+            <label class="block text-sm font-medium text-gray-700">Bidisha User</label>
+            <input type="text" name="bidisha_username" class="w-full p-2 border rounded" placeholder="Username" value="Bidisha" required>
+            <input type="password" name="bidisha_password" class="w-full p-2 border rounded" placeholder="Password" required>
+        </div>
+        
+        <button type="submit" class="w-full btn btn-primary">Create Users</button>
+    </form>
+    
+    <p class="mt-4 text-xs text-gray-500">
+        After creating these users, you will be able to log in with any of them.
+        All passwords are stored securely in the database.
+    </p>
+</div>
+{% endblock %}
