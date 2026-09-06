@@ -334,6 +334,12 @@ body {
 #remindersCard {
   /* keep existing styling from original */
 }
+.dashboard-welcome {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted-text);
+  margin-bottom: 0.25rem;
+}
 /* Hide the base.html welcome div on homepage since we have our own welcome card */
 #welcome {
   display: none !important;
@@ -343,6 +349,7 @@ body {
   <!-- Top status bar -->
   <div class="dashboard-header">
     <div class="dashboard-left">
+      <div id="dashboardWelcome" class="dashboard-welcome"></div>
       <div id="currentDate" class="date">--:--:--</div>
       <div id="currentTime" class="time">--:--:--</div>
     </div>
@@ -1272,8 +1279,22 @@ function updateDateTime() {
     document.getElementById('currentDate').textContent = dateString;
 }
 
-// Update immediately and then every second
+// Update welcome message
+function updateWelcomeMessage() {
+    var username = localStorage.getItem('username') || '';
+    var welcomeMessage = username ? 'Welcome, ' + username + '!' : 'Welcome!';
+    document.getElementById('dashboardWelcome').textContent = welcomeMessage;
+}
+
+// Update immediately and then every second for time
 updateDateTime();
 setInterval(updateDateTime, 1000);
+
+// Update welcome message on load and on user switch
+document.addEventListener('DOMContentLoaded', function() {
+    updateWelcomeMessage();
+    // Listen for user switched event from base.html
+    document.addEventListener('user-switched', updateWelcomeMessage);
+});
 </script>
 {% endblock %}
