@@ -2,9 +2,10 @@
 {% block content %}
 <div class="max-w-md mx-auto card p-6">
     <h2 class="text-2xl font-bold mb-4">Sign in</h2>
-    <p class="text-sm text-gray-600 mb-4">This instance requires a password to access.</p>
+    <p class="text-sm text-gray-600 mb-4">Enter your username and password to continue.</p>
     <form method="POST" class="space-y-3">
-        <input type="password" name="password" class="w-full p-2 border rounded" placeholder="Enter password" required>
+        <input type="text" name="username" class="w-full p-2 border rounded" placeholder="Username" required>
+        <input type="password" name="password" class="w-full p-2 border rounded" placeholder="Password" required>
         <button type="submit" class="w-full btn btn-primary">Continue</button>
     </form>
 </div>

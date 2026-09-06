@@ -15,7 +15,7 @@ def load_config():
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(__name__)
     logger.debug(f"Loaded config from {CONFIG_PATH}: {config}")
-    # Hash password if present
+    # Hash password if present (for backward compatibility)
     if 'password' in config and config['password']:
         config['password_hash'] = hashlib.sha256(config['password'].encode()).hexdigest()
         del config['password']
@@ -97,5 +97,9 @@ def load_config():
         push['vapid_private_key'] = os.environ['VAPID_PRIVATE_KEY']
     if os.environ.get('VAPID_SUBJECT'):
         push['vapid_subject'] = os.environ['VAPID_SUBJECT']
+    
+    # Create default users from environment variables if none exist
+    # This function should be called after the app context is available
+    config['_setup_users'] = True
     
     return config

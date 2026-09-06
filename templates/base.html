@@ -147,23 +147,19 @@
         <!-- Main Content -->
         <main class="main-content flex-1 p-4 md:p-8 overflow-y-auto md:ml-0 ml-0">
             <div class="max-w-none md:max-w-none mx-auto">
-                <div class="sticky top-0 z-20 mb-4">
-                    <div class="flex items-center flex-wrap gap-2">
-                        <button id="openSidebar" class="md:hidden bg-blue-600 text-white px-3 py-2 rounded"><i class="fa-solid fa-bars"></i> Menu</button>
-                        {% if not (hide_user_ui | default(false)) %}
-                        <div class="ml-auto flex items-center gap-3 flex-wrap justify-end">
-                            <div id="welcome" class="text-sm text-gray-600 truncate max-w-[50vw]"></div>
-                            <div>
-                                <label class="text-sm text-gray-600 mr-2">User:</label>
-                                <select id="userSwitcher" class="border rounded p-1 text-sm"></select>
-                            </div>
-                            {% if is_authed %}
-                            <a href="/logout" class="px-2 py-1 rounded bg-gray-100 text-gray-800"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
+<div class="sticky top-0 z-20 mb-4">
+            <div class="flex items-center flex-wrap gap-2">
+                <button id="openSidebar" class="md:hidden bg-blue-600 text-white px-3 py-2 rounded"><i class="fa-solid fa-bars"></i> Menu</button>
+                {% if not (hide_user_ui | default(false)) %}
+                <div class="ml-auto flex items-center gap-3 flex-wrap justify-end">
+                    <div id="welcome" class="text-sm text-gray-600 truncate max-w-[50vw]"></div>
+                    {% if is_authed %}
+                    <a href="/logout" class="px-2 py-1 rounded bg-gray-100 text-gray-800"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+                    {% endif %}
                 </div>
+                {% endif %}
+            </div>
+        </div>
                 <div id="globalFlashWrap" class="hidden">{% include "_flash.html" %}</div>
                 {% block content %}{% endblock %}
             </div>
@@ -243,41 +239,7 @@
         }
         // Ensure a username is stored in localStorage; initialize after DOM is ready
         document.addEventListener('DOMContentLoaded', function(){
-            const switcher = document.getElementById('userSwitcher');
-            if (switcher){
-                const familyEl = document.getElementById('familyData');
-                let family = [];
-                try { family = JSON.parse(familyEl?.textContent || '[]'); } catch(e) { family = []; }
-                const adminName = '{{ config.admin_name }}';
-                const users = [adminName, ...family];
-                switcher.innerHTML = '';
-                users.forEach(u => {
-                    const opt = document.createElement('option');
-                    opt.value = u; opt.textContent = u;
-                    switcher.appendChild(opt);
-                });
-                const existing = localStorage.getItem('username');
-                if (existing){
-                    switcher.value = existing;
-                } else {
-                    // Show first-run user selection modal now that DOM is ready
-                    showUserSelectModal(users);
-                }
-                switcher.addEventListener('change', function(){
-                    localStorage.setItem('username', this.value);
-                    renderWelcome();
-                    applyUserContext();
-                    // Notify page-level listeners to update UI without refresh
-                    document.dispatchEvent(new CustomEvent('user-switched', { detail: { user: this.value }}));
-                    // Update service worker with new user
-                    if (navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: this.value });
-                    }
-                });
-            }
-            renderWelcome();
-            applyUserContext();
-            // Sidebar toggles
+            // Initialize sidebar toggles
             const sidebar = document.getElementById('sidebar');
             const COLLAPSE_KEY = 'ui:sidebarCollapsed';
             const rootEl = document.documentElement;
@@ -305,15 +267,32 @@
                     try{ localStorage.setItem(COLLAPSE_KEY, willCollapse ? '1' : '0'); }catch(e){}
                 }
             });
+            
+            // Update welcome message and apply user context (uses session data from rendered page)
+            renderWelcome();
+            applyUserContext();
         });
         function renderWelcome(){
-            const name = localStorage.getItem('username') || '';
+            const name = "{{ session.get('username', '') }}";
             const d = new Date();
             const ds = d.toLocaleString();
-            document.getElementById('welcome').textContent = name ? `Welcome, ${name}! — ${ds}` : ds;
+            const welcomeMessage = name ? `Welcome, ${name}! — ${ds}` : `Welcome! — ${ds}`;
+            
+            // Update dashboard welcome div (on index.html)
+            const dashboardWelcome = document.getElementById('dashboardWelcome');
+            if (dashboardWelcome) {
+                dashboardWelcome.textContent = welcomeMessage;
+            }
+            
+            // Update base welcome div (on all pages)
+            const baseWelcome = document.getElementById('welcome');
+            if (baseWelcome) {
+                baseWelcome.textContent = welcomeMessage;
+            }
         }
         function applyUserContext(){
-            const current = localStorage.getItem('username') || '';
+            // Get username from session (set during login) rather than localStorage
+            const current = "{{ session.get('username', '') }}";
             const adminName = '{{ config.admin_name }}';
             const allowed = (creator) => (current === creator || current === adminName || current === 'Administrator' || current === 'admin');
             // hidden inputs

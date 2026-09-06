@@ -1279,22 +1279,8 @@ function updateDateTime() {
     document.getElementById('currentDate').textContent = dateString;
 }
 
-// Update welcome message
-function updateWelcomeMessage() {
-    var username = localStorage.getItem('username') || '';
-    var welcomeMessage = username ? 'Welcome, ' + username + '!' : 'Welcome!';
-    document.getElementById('dashboardWelcome').textContent = welcomeMessage;
-}
-
-// Update immediately and then every second for time
+// Update immediately and then every second
 updateDateTime();
 setInterval(updateDateTime, 1000);
-
-// Update welcome message on load and on user switch
-document.addEventListener('DOMContentLoaded', function() {
-    updateWelcomeMessage();
-    // Listen for user switched event from base.html
-    document.addEventListener('user-switched', updateWelcomeMessage);
-});
 </script>
 {% endblock %}
