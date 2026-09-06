@@ -143,17 +143,13 @@ def create_app(test_config: dict | None = None):
             add_column_if_missing('recurring_expense', 'category', 'VARCHAR(64)', None)
             add_column_if_missing('recurring_expense', 'effective_from', 'DATE', None)
             
-        except Exception as e:
-            # Log but don't crash on migration errors
-            app.logger.warning(f"Auto-migration skipped or failed: {e}")
-
-        # Ensure tables exist
-        with db.engine.begin() as conn:
-            conn.execute(text("CREATE TABLE IF NOT EXISTS member_status (id SERIAL PRIMARY KEY, name VARCHAR(64), text TEXT, updated_at TIMESTAMP)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS grocery_history (id SERIAL PRIMARY KEY, item VARCHAR(256), creator VARCHAR(64), timestamp TIMESTAMP)"))
-            conn.execute(text("CREATE TABLE IF NOT EXISTS app_setting (key VARCHAR(64) PRIMARY KEY, value TEXT)"))
-
-    from .blueprints import main_bp
+# Ensure tables exist
+             with db.engine.begin() as conn:
+                 conn.execute(text("CREATE TABLE IF NOT EXISTS member_status (id SERIAL PRIMARY KEY, name VARCHAR(64), text TEXT, updated_at TIMESTAMP)"))
+                 conn.execute(text("CREATE TABLE IF NOT EXISTS grocery_history (id SERIAL PRIMARY KEY, item VARCHAR(256), creator VARCHAR(64), timestamp TIMESTAMP)"))
+                 conn.execute(text("CREATE TABLE IF NOT EXISTS app_setting (key VARCHAR(64) PRIMARY KEY, value TEXT)"))
+ 
+     from .blueprints import main_bp
     # Register modular route modules to attach endpoints to main_bp
     from .blueprints import auth  # noqa: F401
     from .blueprints import dashboard  # noqa: F401
@@ -187,4 +183,3 @@ def create_app(test_config: dict | None = None):
             return []
 
     return app
-
