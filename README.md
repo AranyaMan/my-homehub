@@ -578,10 +578,7 @@ HomeHub is provided under the [MIT License](./LICENSE).
 ## ☕ Support
 
 If you find HomeHub useful, consider supporting the project:
-
-[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_A_Coffee-FFDD00.svg?logo=buy-me-a-coffee&logoColor=black)](https://ko-fi.com/skv)
-
----
+give it stars
 
 *Built as a practical shared space for a family home.*
 
