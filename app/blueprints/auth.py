@@ -95,6 +95,7 @@ def login():
                 session.clear()
                 session['user_id'] = user.id
                 session['username'] = user.username
+                session['authed'] = True
                 session['csrf_token'] = secrets.token_hex(32)
                 flash('Logged in successfully.', 'success')
                 return redirect(url_for('main.index'))
