@@ -1,9 +1,17 @@
-from flask import current_app, request, session, redirect, url_for, render_template, flash
+from flask import current_app, request, session, redirect, url_for, render_template, flash, jsonify
 from ..blueprints import main_bp
 from .. import db
 from ..models import User
 import hashlib
 import bleach
+import secrets
+
+
+def ensure_csrf_token():
+    """Ensure a CSRF token exists in the session."""
+    if 'csrf_token' not in session:
+        session['csrf_token'] = secrets.token_hex(32)
+    return session['csrf_token']
 
 
 @main_bp.before_app_request
@@ -14,6 +22,9 @@ def reload_config_and_auth():
         pass
     cfg = current_app.config.get('HOMEHUB_CONFIG', {})
     endpoint = request.endpoint or ''
+    
+    # Ensure CSRF token exists for all requests
+    ensure_csrf_token()
     
     # Check if we have any users in the database - if so, require authentication
     # Otherwise, allow access to setup and login routes only
@@ -100,8 +111,12 @@ def login():
             user = User.query.filter_by(username=username).first()
             
             if user and user.check_password(password):
+                # Regenerate session ID to prevent session fixation
+                session.clear()
                 session['user_id'] = user.id
                 session['username'] = user.username
+                # Generate new CSRF token for this session
+                session['csrf_token'] = secrets.token_hex(32)
                 flash('Logged in successfully.', 'success')
                 return redirect(url_for('main.index'))
             
@@ -113,10 +128,56 @@ def login():
         return redirect(url_for('main.setup'))
 
 
-@main_bp.route('/logout')
+@main_bp.route('/logout', methods=['POST'])
 def logout():
-    session.pop('user_id', None)
-    session.pop('username', None)
-    session.pop('authed', None)  # Clean up old auth flag
-    flash('Logged out.', 'info')
+    """
+    Secure logout endpoint with CSRF protection and session cleanup.
+    Uses POST method to prevent CSRF attacks on logout.
+    """
+    # Verify CSRF token if present (for AJAX requests)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        # For AJAX requests, validate CSRF token from header or body
+        csrf_token = request.headers.get('X-CSRF-Token') or request.json.get('csrf_token') if request.is_json else None
+        if not csrf_token or csrf_token != session.get('csrf_token'):
+            return jsonify({'error': 'Invalid CSRF token'}), 403
+    
+    # Generate new CSRF token for next session (prevents session fixation)
+    new_csrf_token = secrets.token_hex(32)
+    
+    # Clear all session data
+    session.clear()
+    
+    # Set new CSRF token for potential next login
+    session['csrf_token'] = new_csrf_token
+    
+    # Create response with security headers
+    response = redirect(url_for('main.login'))
+    
+    # Clear session cookie with secure flags
+    response.set_cookie(
+        'session',
+        '',
+        expires=0,
+        httponly=True,
+        secure=True,  # Only sent over HTTPS
+        samesite='Lax',  # CSRF protection
+        path='/'  # Ensure cookie is cleared for all paths
+    )
+    
+    # Add security headers
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    flash('Logged out successfully.', 'success')
+    return response
+
+
+@main_bp.route('/logout', methods=['GET'])
+def logout_get():
+    """
+    Handle GET requests to logout by redirecting to login with a message.
+    This prevents accidental logouts via GET requests (e.g., prefetching, bookmarks).
+    """
+    flash('Please use the logout button to log out securely.', 'info')
     return redirect(url_for('main.login'))

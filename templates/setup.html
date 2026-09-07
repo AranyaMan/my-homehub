@@ -4,6 +4,7 @@
     <h2 class="text-2xl font-bold mb-4">Initial Setup</h2>
     <p class="text-sm text-gray-600 mb-4">Create the initial three users for your HomeHub:</p>
     <form method="POST" class="space-y-4">
+        <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
         <div class="space-y-2">
             <label class="block text-sm font-medium text-gray-700">Admin User</label>
             <input type="text" name="admin_username" class="w-full p-2 border rounded" placeholder="Username" value="Admin" required>
