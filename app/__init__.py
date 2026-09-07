@@ -57,15 +57,9 @@ def create_app(test_config: dict | None = None):
     else:
         db_path = os.path.join(base_dir, 'data', 'app.db')
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
-# Generate a strong SECRET_KEY if not provided via env
-    secret = os.environ.get('SECRET_KEY')
-    if not secret:
-        import secrets as _secrets
-        secret = _secrets.token_hex(32)
-    app.config['SECRET_KEY'] = secret
-    # Explicitly disable CSRF (forms are simple and app runs on home network)
+
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
     app.config['WTF_CSRF_ENABLED'] = False
-    # Secure session cookie settings
     app.config['SESSION_COOKIE_SECURE'] = True  # Only transmit cookies over HTTPS
     app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent XSS access to session cookie
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
@@ -75,8 +69,6 @@ def create_app(test_config: dict | None = None):
     
     # Load config.yml
     app.config['HOMEHUB_CONFIG'] = load_config()
-
-    # Allow tests to override configuration (database, testing flag, etc.)
     if test_config:
         app.config.update(test_config)
 
@@ -193,4 +185,3 @@ def create_app(test_config: dict | None = None):
             return []
 
     return app
-

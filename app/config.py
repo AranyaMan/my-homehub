@@ -10,23 +10,10 @@ def load_config():
         raise FileNotFoundError(f'config.yml not found at {CONFIG_PATH}.')
     with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f) or {}
-    # DEBUG: Log what we actually loaded
-    import logging
-    logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger(__name__)
-    logger.debug(f"Loaded config from {CONFIG_PATH}: {config}")
     # Hash password if present (for backward compatibility)
     if 'password' in config and config['password']:
         config['password_hash'] = hashlib.sha256(config['password'].encode()).hexdigest()
         del config['password']
-    # Ensure feature_toggles exists
-    config.setdefault('feature_toggles', {})
-    # Ensure Who is Home widget is enabled by default unless explicitly disabled in config.yml
-    config['feature_toggles'].setdefault('who_is_home', True)
-    # Personal status feature toggle (new)
-    config['feature_toggles'].setdefault('personal_status', True)
-    # Homepage chores widget toggle (runtime value may be overridden in app_setting)
-    config['feature_toggles'].setdefault('show_chores_on_homepage', False)
     # Reminders defaults & calendar start day (supports sunday..saturday or 0-6)
     rem = config.setdefault('reminders', {})
     # Do not overwrite existing user value

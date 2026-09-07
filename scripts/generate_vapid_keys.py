@@ -4,7 +4,6 @@ VAPID key generation utility for Web Push notifications.
 Run this script to generate VAPID keys for push notification configuration.
 """
 import base64
-import sys
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives import serialization
 

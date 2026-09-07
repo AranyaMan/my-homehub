@@ -1,7 +1,7 @@
 from flask import jsonify, request, current_app
 import requests
 from ..blueprints import main_bp
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 # In-memory cache for weather data
@@ -55,7 +55,6 @@ def weather_proxy():
                     api_time_utc = api_time.replace(tzinfo=timezone.utc) if api_time.tzinfo is None else api_time.astimezone(timezone.utc)
                     
                     # Adjust for timezone offset if API time doesn't have timezone info
-                    from datetime import timedelta
                     if api_time.tzinfo is None:
                         api_time_utc = (api_time - timedelta(seconds=utc_offset)).replace(tzinfo=timezone.utc)
                     

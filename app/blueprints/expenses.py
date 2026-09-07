@@ -454,7 +454,6 @@ def expenses_settings():
         flash('Settings saved.', 'success')
     except Exception:
         flash('Failed to save settings.', 'error')
-    today = date.today()
     tab = request.args.get('tab', 'general-settings')
     return redirect(url_for('main.recurring_expenses_page', tab=tab))
 
@@ -473,9 +472,8 @@ def delete_expense_entry(entry_id):
     db.session.commit()
     flash('Expense deleted.', 'success')
     # Preserve view
-    today = date.today()
-    y = request.args.get('y') or today.year
-    m = request.args.get('m') or today.month
+    y = request.args.get('y') or date.today().year
+    m = request.args.get('m') or date.today().month
     sel = request.args.get('sel')
     return redirect(url_for('main.expenses', y=y, m=m, sel=sel))
 

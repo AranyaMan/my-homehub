@@ -1064,24 +1064,10 @@ body {
 					if(editTarget){ editTarget.addEventListener('dblclick',()=> openForm('edit', r.date, r)); }
 					if(editBtn){ editBtn.addEventListener('click',()=> openForm('edit', r.date, r)); }
 				}
-			}
-		});
-		// bind rule edit/delete
-		bindRuleEdits();
-		listWrap.querySelectorAll('[data-delete-rule]')?.forEach(btn=>{
-			btn.addEventListener('click', async ()=>{
-				const rid=parseInt(btn.getAttribute('data-delete-rule')); const creator=localStorage.getItem('username')||'';
-				const res = await window.remindersApi.deleteRule(rid, creator);
-				if(res && res.ok){ const dateStr=getSelectedDate(); await fetchMonth(dateStr, true); const d=new Date(dateStr); const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); recalcMonth(key); updateCalendarBadges(); renderList(); toast('Recurring rule deleted','success'); }
-				else { toast((res&&res.error)||'Delete failed','error'); }
-			});
-		});
-			// Initialize bulk bar visibility on render
-			updateBulkUI();
-	}
-
-	if(currentScope==='month'){ const prev=new Date(dObj.getFullYear(), dObj.getMonth()-1,1); const next=new Date(dObj.getFullYear(), dObj.getMonth()+1,1); fetchMonth(prev.toISOString().slice(0,10)); fetchMonth(next.toISOString().slice(0,10)); }
-	updateCategorySummary(baseItems); }
+}
+		}
+		if(currentScope==='month'){ const prev=new Date(dObj.getFullYear(), dObj.getMonth()-1,1); const next=new Date(dObj.getFullYear(), dObj.getMonth()+1,1); fetchMonth(prev.toISOString().slice(0,10)); fetchMonth(next.toISOString().slice(0,10)); }
+		updateCategorySummary(baseItems); }
 	// Category summary pills (buttons) click handler using data-cat attribute
 	const catSummaryEl=document.getElementById('reminderCategorySummary');
 	if(catSummaryEl && !catSummaryEl.dataset.clickReady){

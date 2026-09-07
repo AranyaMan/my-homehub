@@ -77,7 +77,6 @@
                 if(collapsed){
                     document.documentElement.classList.add('prefers-sidebar-collapsed');
                 }
-                // Also set initial icon/title when DOM is ready, using the same preference
                 function setInitialIcon(){
                     var icon = document.getElementById('collapseIcon');
                     if(icon){ icon.className = 'fa-solid '+(collapsed ? 'fa-angles-right' : 'fa-angles-left'); }
@@ -95,15 +94,11 @@
                 var logoutForm = document.getElementById('logout-form');
                 if (logoutForm) {
                     logoutForm.addEventListener('submit', function(e) {
-                        // Clear client-side storage before logout
                         try {
-                            // Clear user-related localStorage
                             localStorage.removeItem('username');
                             localStorage.removeItem('userSelectInput');
-                            localStorage.removeItem('ui:sidebarCollapsed'); // Keep UI preferences if desired
-                            // Clear all sessionStorage
+                            localStorage.removeItem('ui:sidebarCollapsed');
                             sessionStorage.clear();
-                            // Notify service worker to clear its user data
                             if (navigator.serviceWorker && navigator.serviceWorker.controller) {
                                 navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_USER' });
                             }
@@ -126,8 +121,6 @@
 </head>
 <body class="min-h-screen">
     <div class="flex min-h-screen">
-        <!-- Global JSON data for client scripts -->
-        <script id="familyData" type="application/json">{{ config.family_members | tojson }}</script>
         <!-- Sidebar -->
         <aside id="sidebar" class="sidebar w-64 text-gray-900 flex flex-col fixed md:static inset-y-0 left-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 z-40 bg-white border-r border-gray-200 dark:bg-slate-800 dark:border-slate-700">
             <div class="p-6 text-2xl font-bold border-b border-gray-200 dark:border-slate-700 flex items-center justify-between" style="color: var(--sidebar-text-color);">
@@ -139,8 +132,8 @@
                     <button id="closeSidebar" class="md:hidden text-gray-700 hover:text-gray-900 dark:text-white/90 dark:hover:text-white" aria-label="Close">✕</button>
                 </div>
             </div>
-<nav class="flex-1 p-4 space-y-2 overflow-y-auto" id="sidebarNav">
-        <a href="/" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="Welcome"><i class="fa-solid fa-house w-5 text-center"></i><span class="nav-label">Welcome</span></a>
+            <nav class="flex-1 p-4 space-y-2 overflow-y-auto" id="sidebarNav">
+                <a href="/" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="Welcome"><i class="fa-solid fa-house w-5 text-center"></i><span class="nav-label">Welcome</span></a>
                 {% if config.feature_toggles.get('notes') %}<a href="/notes" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="Shared Notes"><i class="fa-solid fa-note-sticky w-5 text-center"></i><span class="nav-label">Shared Notes</span></a>{% endif %}
                 {% if config.feature_toggles.get('shared_cloud') %}<a href="/upload" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="Shared Cloud"><i class="fa-solid fa-cloud w-5 text-center"></i><span class="nav-label">Shared Cloud</span></a>{% endif %}
                 {% if config.feature_toggles.get('shopping_list') %}<a href="/shopping" class="flex items-center gap-3 py-2 px-4 rounded sidebar-link" title="Shopping List" style="color: #ea580c;"><i class="fa-solid fa-cart-shopping w-5 text-center" style="color: #ea580c;"></i><span class="nav-label">Shopping List</span></a>{% endif %}
@@ -161,7 +154,6 @@
                 const path = window.location.pathname.replace(/\/$/, '');
                 links.forEach(link => {
                     let href = link.getAttribute('href').replace(/\/$/, '');
-                    // Only mark active if exact match
                     if (href === path) {
                         link.classList.add('active');
                     } else {
@@ -174,24 +166,24 @@
         <!-- Main Content -->
         <main class="main-content flex-1 p-4 md:p-8 overflow-y-auto md:ml-0 ml-0">
             <div class="max-w-none md:max-w-none mx-auto">
-<div class="sticky top-0 z-20 mb-4">
-            <div class="flex items-center flex-wrap gap-2">
-                <button id="openSidebar" class="md:hidden bg-blue-600 text-white px-3 py-2 rounded"><i class="fa-solid fa-bars"></i> Menu</button>
-                {% if not (hide_user_ui | default(false)) %}
-                <div class="ml-auto flex items-center gap-3 flex-wrap justify-end">
-                    <div id="welcome" class="text-sm text-gray-600 truncate max-w-[50vw]"></div>
-                    {% if is_authed %}
-                    <form action="{{ url_for('main.logout') }}" method="POST" style="display:inline;" id="logout-form">
-                        <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
-                        <button type="submit" class="px-2 py-1 rounded bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors" title="Logout securely">
-                            <i class="fa-solid fa-right-from-bracket"></i> Logout
-                        </button>
-                    </form>
-                    {% endif %}
+                <div class="sticky top-0 z-20 mb-4">
+                    <div class="flex items-center flex-wrap gap-2">
+                        <button id="openSidebar" class="md:hidden bg-blue-600 text-white px-3 py-2 rounded"><i class="fa-solid fa-bars"></i> Menu</button>
+                        {% if not (hide_user_ui | default(false)) %}
+                        <div class="ml-auto flex items-center gap-3 flex-wrap justify-end">
+                            <div id="welcome" class="text-sm text-gray-600 truncate max-w-[50vw]"></div>
+                            {% if is_authed %}
+                            <form action="{{ url_for('main.logout') }}" method="POST" style="display:inline;" id="logout-form">
+                                <input type="hidden" name="csrf_token" value="{{ session.csrf_token }}">
+                                <button type="submit" class="px-2 py-1 rounded bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors" title="Logout securely">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
-                {% endif %}
-            </div>
-        </div>
                 <div id="globalFlashWrap" class="hidden">{% include "_flash.html" %}</div>
                 {% block content %}{% endblock %}
             </div>
@@ -219,7 +211,7 @@
                     toastEl.style.opacity='0'; 
                     toastEl.style.pointerEvents='none';                    
                     hideEndTimer=setTimeout(()=>{ toastEl && (toastEl.style.display='none'); }, 240);
-                }, 2600); // fade start
+                }, 2600);
             };
         })();        
         (function(){
@@ -240,57 +232,23 @@
             });            
             setTimeout(()=>wrap.remove(), msgs.length*70 + 200);
         })();        
-        function showUserSelectModal(users){
-            const modal = document.getElementById('userSelectModal');
-            const input = document.getElementById('userSelectInput');
-            const confirmBtn = document.getElementById('userSelectConfirm');
-            if (!modal || !input || !confirmBtn) return;
-            input.innerHTML = '';
-            users.forEach(u => {
-                const opt = document.createElement('option');
-                opt.value = u; opt.textContent = u; input.appendChild(opt);
-            });
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            confirmBtn.onclick = function(){
-                const selected = input.value;
-                if (selected){
-                    localStorage.setItem('username', selected);
-                    const switcher = document.getElementById('userSwitcher');
-                    if (switcher){ switcher.value = selected; }
-                    renderWelcome();
-                    applyUserContext();
-                    // Update service worker with new user
-                    if (navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: selected });
-                    }
-                }
-                modal.classList.add('hidden');
-                modal.classList.remove('flex');
-            };
-        }
-        // Ensure a username is stored in localStorage; initialize after DOM is ready
         document.addEventListener('DOMContentLoaded', function(){
-            // Initialize sidebar toggles
             const sidebar = document.getElementById('sidebar');
             const COLLAPSE_KEY = 'ui:sidebarCollapsed';
             const rootEl = document.documentElement;
             document.getElementById('openSidebar')?.addEventListener('click', ()=> sidebar.classList.remove('-translate-x-full'));
             document.getElementById('closeSidebar')?.addEventListener('click', ()=> sidebar.classList.add('-translate-x-full'));
-            // Desktop collapse/expand
             const collapseIcon = document.getElementById('collapseIcon');
             function applyCollapsedState(collapsed){
                 const isCollapsed = !!collapsed;
                 if(window.matchMedia('(min-width: 768px)').matches){
                     sidebar.classList.toggle('collapsed', isCollapsed);
                 }
-                // Keep root hint in sync for next load (used to avoid flash)
                 rootEl.classList.toggle('prefers-sidebar-collapsed', isCollapsed);
                 if(collapseIcon){ collapseIcon.className = 'fa-solid '+(isCollapsed ? 'fa-angles-right' : 'fa-angles-left'); }
                 const btn = document.getElementById('toggleCollapse');
                 if(btn){ btn.title = isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'; }
             }
-            // Initialize from saved preference
             try{ const saved = localStorage.getItem(COLLAPSE_KEY); applyCollapsedState(saved==='1'||saved==='true'); }catch(e){}
             document.getElementById('toggleCollapse')?.addEventListener('click', ()=>{
                 if(window.matchMedia('(min-width: 768px)').matches){
@@ -300,7 +258,6 @@
                 }
             });
             
-            // Update welcome message and apply user context (uses session data from rendered page)
             renderWelcome();
             applyUserContext();
         });
@@ -310,37 +267,30 @@
             const ds = d.toLocaleString();
             const welcomeMessage = name ? `Welcome, ${name}! — ${ds}` : `Welcome! — ${ds}`;
             
-            // Update dashboard welcome div (on index.html)
             const dashboardWelcome = document.getElementById('dashboardWelcome');
             if (dashboardWelcome) {
                 dashboardWelcome.textContent = welcomeMessage;
             }
             
-            // Update base welcome div (on all pages)
             const baseWelcome = document.getElementById('welcome');
             if (baseWelcome) {
                 baseWelcome.textContent = welcomeMessage;
             }
         }
         function applyUserContext(){
-            // Get username from session (set during login) rather than localStorage
             const current = "{{ session.get('username', '') }}";
             const adminName = '{{ config.admin_name }}';
             const allowed = (creator) => (current === creator || current === adminName || current === 'Administrator' || current === 'admin');
-            // hidden inputs
             document.querySelectorAll('input[name="creator"]').forEach(function(i){ i.value = current; });
             document.querySelectorAll('input[name="user"]').forEach(function(i){ i.value = current; });
-            // delete button visibility where data-creator is available
             document.querySelectorAll('.delete-form').forEach(f => {
                 const creator = f.getAttribute('data-creator');
                 f.style.display = allowed(creator) ? '' : 'none';
             });
-            // edit controls visibility where data-creator is available
             document.querySelectorAll('.edit-btn[data-creator], .editable-owner-only[data-creator]').forEach(el => {
                 const creator = el.getAttribute('data-creator');
                 el.style.display = allowed(creator) ? '' : 'none';
             });
-            // Notice editor visibility if present
             const nf = document.getElementById('noticeForm');
             if (nf){
                 const isAdmin = (current === adminName || current === 'Administrator' || current === 'admin');
@@ -349,23 +299,7 @@
                 if (userField) userField.value = current;
             }
         }
-        // renderWelcome/applyUserContext are invoked from DOMContentLoaded
     </script>
-    <!-- First-visit user selection modal -->
-    <div id="userSelectModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50">
-        <div class="bg-white w-full max-w-sm p-4 rounded shadow">
-            <h3 class="text-lg font-semibold mb-3">Select your user</h3>
-            <p class="text-sm text-gray-600 mb-3">Pick your name to personalize your HomeHub experience.</p>
-            <div class="mb-3">
-                <label class="block text-sm text-gray-700 mb-1" for="userSelectInput">User</label>
-                <select id="userSelectInput" class="w-full border rounded p-2"></select>
-            </div>
-            <div class="flex justify-end gap-2">
-                <button id="userSelectConfirm" class="px-3 py-2 rounded bg-blue-600 text-white">Continue</button>
-            </div>
-        </div>
-    </div>
-    
 </body>
 <script src="/static/js/reminders_api.js"></script>
 <script>
@@ -375,12 +309,10 @@
             window.addEventListener('load', function(){
                 navigator.serviceWorker.register('/sw.js', { scope: '/' })
                     .then(function(reg) {
-                        // Send user info to service worker when ready
                         const currentUser = localStorage.getItem('username') || '';
                         if (currentUser && reg.active) {
                             reg.active.postMessage({ type: 'SET_USER', user: currentUser });
                         }
-                        // Also listen for controller changes
                         navigator.serviceWorker.addEventListener('controllerchange', function() {
                             if (navigator.serviceWorker.controller) {
                                 navigator.serviceWorker.controller.postMessage({ type: 'SET_USER', user: currentUser });
@@ -391,5 +323,5 @@
             });
         }
     })();
-    </script>
+</script>
 </html>

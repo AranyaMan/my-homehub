@@ -209,7 +209,7 @@
       tags.forEach(t=>{
         const wrap = document.createElement('div');
         wrap.className = 'group inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs border cursor-pointer select-none';
-        const bg = colorFor(t); const fg = textColorFor(bg);
+        const bg = colorFor(t);
         wrap.style.borderColor = bg; wrap.style.color = bg;
         const plus = document.createElement('span'); plus.title='Add'; plus.className='opacity-100'; plus.innerHTML='<i class="fa fa-plus"></i>';
         const text = document.createElement('span'); text.textContent = t;

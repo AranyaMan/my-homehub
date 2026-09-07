@@ -4,9 +4,7 @@ from ..models import db, Chore, RecurringChore, PushSubscription
 from ..blueprints import main_bp
 from ..security import sanitize_text
 import json
-import base64
-from pywebpush import webpush
-from pywebpush import WebPushException
+from pywebpush import webpush, WebPushException
 
 
 def _parse_date(value):

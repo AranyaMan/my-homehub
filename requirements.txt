@@ -8,7 +8,6 @@ Pillow
 gunicorn
 Flask-WTF
 bleach
-pytest
 requests
 psycopg2-binary
 pywebpush

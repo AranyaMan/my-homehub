@@ -3,7 +3,6 @@ services:
     container_name: homehub
     profiles: ["app"]
     image: ghcr.io/surajverma/homehub:latest
-    # build: .
     ports:
       - "5000:5000"
     volumes:
