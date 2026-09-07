@@ -121,6 +121,7 @@
 </head>
 <body class="min-h-screen">
     <div class="flex min-h-screen">
+        {% if is_authed or request.endpoint not in ('main.login', 'main.setup') %}
         <!-- Sidebar -->
         <aside id="sidebar" class="sidebar w-64 text-gray-900 flex flex-col fixed md:static inset-y-0 left-0 transform -translate-x-full md:translate-x-0 transition-transform duration-200 z-40 bg-white border-r border-gray-200 dark:bg-slate-800 dark:border-slate-700">
             <div class="p-6 text-2xl font-bold border-b border-gray-200 dark:border-slate-700 flex items-center justify-between" style="color: var(--sidebar-text-color);">
@@ -163,8 +164,9 @@
             })();
             </script>
         </aside>
+        {% endif %}
         <!-- Main Content -->
-        <main class="main-content flex-1 p-4 md:p-8 overflow-y-auto md:ml-0 ml-0">
+        <main class="main-content flex-1 p-4 md:p-8 overflow-y-auto md:ml-0 ml-0 {% if not (is_authed or request.endpoint not in ('main.login', 'main.setup')) %}md:ml-0{% else %}md:ml-64{% endif %}">
             <div class="max-w-none md:max-w-none mx-auto">
                 <div class="sticky top-0 z-20 mb-4">
                     <div class="flex items-center flex-wrap gap-2">
