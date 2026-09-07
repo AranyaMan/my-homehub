@@ -4,6 +4,7 @@ from werkzeug.utils import secure_filename
 from ..models import db, File
 from ..blueprints import main_bp
 from ..security import sanitize_text
+from ..permissions import can_edit
 
 
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -60,9 +61,7 @@ def preview_file(filename):
 def delete_file(file_id):
     db_file = File.query.get_or_404(file_id)
     user = sanitize_text(request.form['user'])
-    admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
-    admin_aliases = {admin_name, 'Administrator', 'admin'}
-    if user in admin_aliases or user == db_file.creator:
+    if can_edit(user, db_file.creator):
         try:
             os.remove(os.path.join(UPLOAD_FOLDER, db_file.filename))
         except Exception:

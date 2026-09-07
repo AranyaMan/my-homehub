@@ -5,6 +5,7 @@ from datetime import datetime
 from ..models import db, Media, PDF
 from ..blueprints import main_bp
 from ..security import sanitize_text, is_url_safe_for_fetch
+from ..permissions import can_edit
 from werkzeug.utils import secure_filename
 
 
@@ -123,9 +124,7 @@ def delete_media(media_id):
         abort(404)
     m = Media.query.get_or_404(media_id)
     user = sanitize_text(request.form['user'])
-    admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
-    admin_aliases = {admin_name, 'Administrator', 'admin'}
-    if user in admin_aliases or user == m.creator:
+    if can_edit(user, m.creator):
         try:
             if m.filepath:
                 base = m.filepath.rsplit('.', 1)[0]
@@ -206,9 +205,7 @@ def delete_pdf(pdf_id):
         abort(404)
     p = PDF.query.get_or_404(pdf_id)
     user = sanitize_text(request.form['user'])
-    admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
-    admin_aliases = {admin_name, 'Administrator', 'admin'}
-    if user in admin_aliases or user == p.creator:
+    if can_edit(user, p.creator):
         try:
             if p.compressed_path:
                 os.remove(os.path.join(PDF_FOLDER, p.compressed_path))

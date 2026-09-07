@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from ..models import db, ShoppingItem, GroceryHistory
 from ..blueprints import main_bp
 from ..security import sanitize_text
+from ..permissions import can_edit
 import json
 from sqlalchemy import inspect, text
 
@@ -99,9 +100,7 @@ def check_shopping(item_id):
 def delete_shopping(item_id):
     item = ShoppingItem.query.get_or_404(item_id)
     user = sanitize_text(request.form['user'])
-    admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
-    admin_aliases = {admin_name, 'Administrator', 'admin'}
-    if user in admin_aliases or user == item.creator:
+    if can_edit(user, item.creator):
         db.session.delete(item)
         db.session.commit()
     return redirect(url_for('main.shopping'))
@@ -113,9 +112,7 @@ def update_shopping_tags(item_id):
     try:
         data = request.get_json(force=True) or {}
         user = sanitize_text(str(data.get('user', '')))
-        admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
-        admin_aliases = {admin_name, 'Administrator', 'admin'}
-        if not (user in admin_aliases or user == (item.creator or '')):
+        if not can_edit(user, item.creator):
             return jsonify({"ok": False, "error": "not allowed"}), 403
         tags = data.get('tags', [])
         if not isinstance(tags, list):
@@ -164,9 +161,7 @@ def api_update_shopping(item_id):
     try:
         data = request.get_json(force=True) or {}
         user = sanitize_text(str(data.get('user', '')))
-        admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
-        admin_aliases = {admin_name, 'Administrator', 'admin'}
-        if not (user in admin_aliases or user == (item.creator or '')):
+        if not can_edit(user, item.creator):
             return jsonify({"ok": False, "error": "not allowed"}), 403
         new_item = data.get('item')
         raw_tags = data.get('tags', [])

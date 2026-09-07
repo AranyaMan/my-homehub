@@ -3,6 +3,7 @@ from datetime import datetime, date
 from ..models import db, ExpiryItem
 from ..blueprints import main_bp
 from ..security import sanitize_text
+from ..permissions import can_edit
 
 
 @main_bp.route('/expiry', methods=['GET', 'POST'])
@@ -35,9 +36,7 @@ def expiry():
 def delete_expiry(item_id):
     it = ExpiryItem.query.get_or_404(item_id)
     user = sanitize_text(request.form['user'])
-    admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
-    admin_aliases = {admin_name, 'Administrator', 'admin'}
-    if user in admin_aliases or user == it.creator:
+    if can_edit(user, it.creator):
         db.session.delete(it)
         db.session.commit()
     return redirect(url_for('main.expiry'))

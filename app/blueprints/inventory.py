@@ -2,11 +2,8 @@ from flask import render_template, request, redirect, url_for, current_app, json
 from ..models import db, InventoryItem
 from ..blueprints import main_bp
 from ..security import sanitize_text
+from ..permissions import can_edit
 import json
-
-def _admin_aliases() -> set[str]:
-    admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
-    return {admin_name, 'Administrator', 'admin'}
 
 def _request_user() -> str:
     user = session.get("username")
@@ -96,7 +93,6 @@ def inventory():
             name = sanitize_text(request.form.get('name', ''))
             creator = sanitize_text(request.form.get('creator', ''))
             user = _request_user()
-            admin_aliases = _admin_aliases()
             
             if not name:
                 flash('Item name is required.', 'error')
@@ -134,7 +130,7 @@ def inventory():
             
             if item_id:
                 item = InventoryItem.query.get_or_404(int(item_id))
-                if not (user in admin_aliases or user == (item.creator or '')):
+                if not can_edit(user, item.creator):
                     flash('Not allowed to update item.', 'error')
                     return redirect(url_for('main.inventory'))
                 item.name = name
@@ -282,8 +278,7 @@ def edit_inventory_item(item_id):
 def delete_inventory_item(item_id):
     item = InventoryItem.query.get_or_404(item_id)
     user = sanitize_text(request.form.get('user', ''))
-    admin_aliases = _admin_aliases()
-    if user in admin_aliases or user == item.creator:
+    if can_edit(user, item.creator):
         db.session.delete(item)
         db.session.commit()
         flash('Item deleted.', 'success')
@@ -297,8 +292,7 @@ def adjust_inventory_quantity(item_id):
     try:
         data = request.get_json(force=True) or {}
         user = sanitize_text(str(data.get('user', '')))
-        admin_aliases = _admin_aliases()
-        if not (user in admin_aliases or user == (item.creator or '')):
+        if not can_edit(user, item.creator):
             return jsonify({"ok": False, "error": "not allowed"}), 403
         delta = data.get('delta')
         if delta is None:

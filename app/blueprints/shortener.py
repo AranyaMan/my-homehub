@@ -3,6 +3,7 @@ from ..models import db, ShortURL
 from ..utils import generate_short_code
 from ..blueprints import main_bp
 from ..security import sanitize_text, is_http_url
+from ..permissions import can_edit
 
 
 @main_bp.route('/shorten', methods=['GET', 'POST'])
@@ -41,9 +42,7 @@ def redirect_short(short_code):
 def delete_short(url_id):
     su = ShortURL.query.get_or_404(url_id)
     user = sanitize_text(request.form['user'])
-    admin_name = current_app.config['HOMEHUB_CONFIG'].get('admin_name', 'Administrator')
-    admin_aliases = {admin_name, 'Administrator', 'admin'}
-    if user in admin_aliases or user == su.creator:
+    if can_edit(user, su.creator):
         db.session.delete(su)
         db.session.commit()
     return redirect(url_for('main.shorten'))
